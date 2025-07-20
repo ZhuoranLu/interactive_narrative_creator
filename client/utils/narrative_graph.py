@@ -27,30 +27,62 @@ class ActionType(Enum):
 
 @dataclass
 class Event:
-    """Represents an event that can be attached to a scene node."""
+    """Represents a background dialogue or environmental description."""
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    description: str = ""
-    content: str = ""
+    speaker: str = ""  # 说话者，环境描述时为空
+    content: str = ""  # 对话或环境描述内容
+    timestamp: int = 0  # 时间戳，用于排序
+    event_type: str = "dialogue"  # "dialogue" 或 "narration"
     metadata: Dict[str, Any] = field(default_factory=dict)
+    
+    # 保留原有字段以兼容旧代码
+    description: str = ""
+    actions: List['Action'] = field(default_factory=list)
+    
+    def add_action(self, action: 'Action') -> None:
+        """Add a non-key action to this event."""
+        if not action.is_key_action:  # 只允许非关键动作
+            self.actions.append(action)
+    
+    def get_action_by_id(self, action_id: str) -> Optional['Action']:
+        """Get action by ID."""
+        for action in self.actions:
+            if action.id == action_id:
+                return action
+        return None
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert event to dictionary representation."""
         return {
             'id': self.id,
-            'description': self.description,
+            'speaker': self.speaker,
             'content': self.content,
+            'timestamp': self.timestamp,
+            'event_type': self.event_type,
+            'description': self.description,  # 兼容性
+            'actions': [action.to_dict() for action in self.actions],
             'metadata': self.metadata
         }
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Event':
         """Create event from dictionary representation."""
-        return cls(
+        event = cls(
             id=data.get('id', str(uuid.uuid4())),
-            description=data.get('description', ''),
+            speaker=data.get('speaker', ''),
             content=data.get('content', ''),
+            timestamp=data.get('timestamp', 0),
+            event_type=data.get('event_type', 'dialogue'),
+            description=data.get('description', ''),  # 兼容性
             metadata=data.get('metadata', {})
         )
+        
+        # Load actions
+        for action_data in data.get('actions', []):
+            action = Action.from_dict(action_data)
+            event.actions.append(action)
+        
+        return event
 
 
 @dataclass
