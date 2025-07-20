@@ -86,29 +86,26 @@ class NarrativeGenerator:
     "chapter_actions": [
         {{
             "id": "action_1",
-            "description": "重要选择描述",
-            "navigation": "continue", 
-            "is_key_action": true,
+            "description": "推进剧情的选择",
+            "navigation": "continue",
             "effects": {{
                 "world_state_changes": "对世界状态的影响描述"
             }}
         }},
         {{
             "id": "action_2", 
-            "description": "留在原地的动作描述",
+            "description": "留在原地的动作",
             "navigation": "stay",
-            "is_key_action": true,
             "response": "执行后的反馈，停留在原地",
             "effects": {{
-                "world_state_changes": "对世界状态的影响描述"
+                "world_state_changes": "对当前环境的影响"
             }}
         }},
         {{
             "id": "action_3",
-            "description": "另一个留在原地的动作",
+            "description": "另一个原地动作",
             "navigation": "stay",
-            "is_key_action": false,
-            "response": "执行后的反馈，停留在原地",
+            "response": "执行后的反馈",
             "effects": {{
                 "world_state_changes": "轻微的状态变化"
             }}
@@ -164,7 +161,6 @@ class NarrativeGenerator:
                 action = Action(
                     id=action_data.get("id", str(uuid.uuid4())),
                     description=action_data.get("description", ""),
-                    is_key_action=action_data.get("is_key_action", True),
                     metadata={
                         "navigation": action_data.get("navigation", "continue"),
                         "response": action_data.get("response", ""),
@@ -172,7 +168,7 @@ class NarrativeGenerator:
                     }
                 )
                 
-                # 创建一个临时的ActionBinding（目标节点稍后设置）
+                # 创建一个临时的ActionBindigng（目标节点稍后设置）
                 binding = ActionBinding(action=action, target_node=None, target_event=None)
                 node.outgoing_actions.append(binding)
             
@@ -253,7 +249,6 @@ class NarrativeGenerator:
             "id": "action_1",
             "description": "玩家选择描述",
             "navigation": "continue|stay",
-            "is_key_action": true,
             "response": "stay时的反馈文本（可选）",
             "effects": {{
                 "world_state_changes": "对世界状态的影响"
@@ -263,7 +258,6 @@ class NarrativeGenerator:
             "id": "action_2",
             "description": "玩家选择描述2", 
             "navigation": "continue",
-            "is_key_action": true,
             "effects": {{
                 "world_state_changes": "对世界状态的影响"
             }}
@@ -319,7 +313,6 @@ class NarrativeGenerator:
                 action = Action(
                     id=action_data.get("id", str(uuid.uuid4())),
                     description=action_data.get("description", ""),
-                    is_key_action=action_data.get("is_key_action", True),
                     metadata={
                         "navigation": action_data.get("navigation", "continue"),
                         "response": action_data.get("response", ""),

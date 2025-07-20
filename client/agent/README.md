@@ -110,7 +110,6 @@ python test_narrative.py
             "id": "action_1",
             "description": "推进剧情的选择",
             "navigation": "continue",
-            "is_key_action": true,
             "effects": {
                 "world_state_changes": "状态变化描述"
             }
@@ -119,7 +118,6 @@ python test_narrative.py
             "id": "action_2",
             "description": "留在原地的行动",
             "navigation": "stay",
-            "is_key_action": false,
             "response": "执行后的反馈",
             "effects": {
                 "world_state_changes": "轻微状态变化"
@@ -131,11 +129,11 @@ python test_narrative.py
 
 ### 动作类型说明
 
-1. **关键动作 (chapter_actions)**
-   - `is_key_action: true`
-   - 可以推动主线剧情发展
-   - `navigation: "continue"` 会生成下一个节点
-   - `navigation: "stay"` 留在当前节点但可能改变状态
+1. **章节动作 (chapter_actions)**
+   - 所有可执行的动作选项
+   - 根据`navigation`类型区分行为：
+     - `"continue"`: 推进剧情，生成下一个节点
+     - `"stay"`: 原地行动，产生反馈但不换场景
 
 2. **事件内容 (events)**
    - 背景对话和环境描述
