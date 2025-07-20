@@ -4,7 +4,7 @@ Interactive Narrative Graph System
 This module implements a directed graph structure for interactive narratives,
 supporting main storyline nodes and events with player actions.
 """
-
+# type: ignore
 from typing import Dict, List, Optional, Set, Tuple, Any, Union
 from enum import Enum
 from dataclasses import dataclass, field
@@ -196,9 +196,11 @@ class NarrativeGraph:
         self.metadata: Dict[str, Any] = {}
     
     # Basic node operations
-    def create_node(self, scene: str) -> Node:
+    def create_node(self, scene: str, node_id: str = None) -> Node:
         """Create a new narrative node."""
-        node = Node(scene=scene, node_type=NodeType.SCENE)
+        if node_id is None:
+            node_id = str(uuid.uuid4())
+        node = Node(scene=scene, node_type=NodeType.SCENE, id=node_id)
         self.nodes[node.id] = node
         
         # Set as start node if it's the first node
@@ -285,7 +287,6 @@ class NarrativeGraph:
             
         return self.bind_action(node_from, action, node_to, event)
     
-    # Graph analysis
     def get_all_nodes(self) -> List[Node]:
         """Get all nodes in the graph."""
         return list(self.nodes.values())
@@ -329,6 +330,24 @@ class NarrativeGraph:
         """Get all nodes that are not reachable from the start node."""
         reachable = self.get_reachable_nodes()
         return [node for node_id, node in self.nodes.items() if node_id not in reachable]
+
+    # Graph analysis
+    def visualize(self):
+        """Visualize the graph using a graph visualization library."""
+        import networkx as nx
+        import matplotlib.pyplot as plt
+
+        G = nx.DiGraph()
+        for node in self.nodes.values():
+            G.add_node(node.id, label=node.scene)
+            
+            for binding in node.outgoing_actions:
+                print(binding)
+                if binding.target_node:
+                    G.add_edge(node.id, binding.target_node.id)
+        
+        nx.draw(G, with_labels=True)
+        plt.show()
     
     def validate_graph(self) -> Dict[str, List[str]]:
         """Validate the graph and return any issues found."""
