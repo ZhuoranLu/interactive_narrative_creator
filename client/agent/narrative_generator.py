@@ -215,7 +215,7 @@ class NarrativeGenerator:
 - 有什么经典的剧情推进方式可以借鉴？"""
         
         prompt = f"""
-你是一个互动小说生成器。根据当前剧情节点、世界状态和玩家的选择，生成下一个剧情节点。
+你是一个充满想象力的叙事者以及游戏剧情创作者。根据当前剧情节点、世界状态和玩家的选择，生成下一个剧情节点。
 
 当前场景: {current_scene}
 
@@ -281,7 +281,7 @@ class NarrativeGenerator:
 """
 
         messages = [
-            {"role": "system", "content": "你是专业的互动小说生成器，擅长创造连贯的剧情发展和有趣的选择分支。"},
+            {"role": "system", "content": "你是一个充满想象力的叙事者以及游戏剧情创作者，擅长创造连贯的剧情发展和有趣的选择分支。"},
             {"role": "user", "content": prompt}
         ]
         
