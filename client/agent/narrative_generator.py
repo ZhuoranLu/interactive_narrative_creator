@@ -33,310 +33,87 @@ except ImportError:
 class NarrativeGenerator:
     """核心叙事生成器"""
     
-    def __init__(self):
-        self.llm_client = LLMClient()
-    
+    def __init__(self, llm_client: LLMClient, world_setting: str = "", characters: list = None, cp: str = "", style: str = "", tags: list = None):
+        """NarrativeGenerator 可配置: 世界设定、角色、CP、风格、标签
+        这些额外信息主要用于 prompt 构建，当前实现仅保存，后续可在 prompt 中引用。"""
+        self.llm_client = llm_client
+        self.world_setting = world_setting
+        self.characters = characters or []
+        self.cp = cp
+        self.style = style
+        self.tags = tags or []
+
+        # 便捷的 prompt 上下文构建函数
+    def _build_prompt_context(self) -> str:
+        parts = []
+        if self.world_setting:
+            parts.append(f"【世界观】{self.world_setting}")
+        if self.characters:
+            parts.append(f"【角色】{', '.join(self.characters)}")
+        if self.cp:
+            parts.append(f"【CP】{self.cp}")
+        if self.style:
+            parts.append(f"【风格】{self.style}")
+        if self.tags:
+            parts.append(f"【标签】{', '.join(self.tags)}")
+        return "\n".join(parts)
+
     def _recall_and_analyze(self, text: str) -> str:
         """让LLM回忆相似作品并分析风格"""
 
         return f"创意: {text}\n\n请基于这个创意，回忆相关的经典作品或故事类型，然后以相应的风格进行创作。"
 
     def bootstrap_node(self, idea: str) -> Node:
-        """
-        函数1: 把一句创意生成第1个节点
-        输入: 用户的创意可能包含几句话的idea 或者是长小说文本
-        输出: 完整Node JSON（含动作）
-        """
-        
-        # 让LLM回忆相似作品并分析风格
-        recall_context = self._recall_and_analyze(idea)
-        
-        prompt = f"""
-你是一个充满想象力的叙事者以及游戏剧情创作者。根据用户给出的创意，生成第一个剧情节点。
-
-{recall_context}
-
-请生成一个JSON格式的节点，包含以下结构：
-
-**重要提醒**：
-- scene包含主要剧情，是玩家会经历的核心故事内容
-- events只是背景氛围，比如路人对话、环境音效等，与主线无关
-{{
-    "scene": "主线剧情描述（1-2段文字，描述当前场景和情况）",
-    "world_state": {{
-        "time": "时间描述",
-        "location": "地点描述", 
-        "characters": ["角色1", "角色2"],
-    }},
-    ### world_state 还需要包括根据故事情节需要添加的变量，比如人物的属性，人物之间的关系等，这些变量需要根据故事情节的发展而变化
-        "events": [
-        {{
-            "speaker": "路人甲",
-            "content": "今天天气真不错",
-            "timestamp": 1,
-            "event_type": "dialogue"
-        }},
-        {{
-            "speaker": "",
-            "content": "远处传来鸟鸣声",
-            "timestamp": 2,
-            "event_type": "narration"
-        }}
-    ],
-    "chapter_actions": [
-        {{
-            "id": "action_1",
-            "description": "推进剧情的选择",
-            "navigation": "continue",
-            "effects": {{
-                "world_state_changes": "对世界状态的影响描述"
-            }}
-        }},
-        {{
-            "id": "action_2", 
-            "description": "留在原地的动作",
-            "navigation": "stay",
-            "response": "执行后的反馈，停留在原地",
-            "effects": {{
-                "world_state_changes": "对当前环境的影响"
-            }}
-        }},
-        {{
-            "id": "action_3",
-            "description": "另一个原地动作",
-            "navigation": "stay",
-            "response": "执行后的反馈",
-            "effects": {{
-                "world_state_changes": "轻微的状态变化"
-            }}
-        }}
-    ]
-}}
-
-要求:
-- scene要生动具体，1-2段完整描述当前场景和情况
-- events是独立的、可选的对话或小事件，**不包含在scene主线中**：
-  * 例如：旁边有人在交谈、背景音乐、环境细节等
-  * dialogue类型：独立的NPC对话，需要speaker字段
-  * narration类型：可选的环境描述，speaker为空
-  * 这些events不影响主线进展，纯粹是氛围和背景
-- chapter_actions包含所有可执行动作，总数3-4个：
-  * 1-2个continue动作：推进剧情到下一个场景
-  * 1-2个stay动作：在当前场景做一些事但不离开
-- navigation类型说明：
-  * "continue": 推进到下一个节点
-  * "stay": 停留在原地但产生效果
-"""
-
-        messages = [
-            {"role": "system", "content": "你是一个充满想象力的叙事者以及游戏剧情创作者。根据用户给出的创意，擅长创造引人入胜的剧情和有趣的选择。"},
-            {"role": "user", "content": prompt}
-        ]
-        
+        """函数1: 把一句创意生成第1个节点 (重构)"""
         try:
-            response_data = self.llm_client.generate_json_response(messages)
+            recall_context = self._recall_and_analyze(idea)
             
-            # 创建Node对象
-            node = Node(
-                scene=response_data.get("scene", ""),
-                node_type=NodeType.SCENE,
-                metadata={
-                    "world_state": response_data.get("world_state", {}),
-                    "chapter_actions": response_data.get("chapter_actions", [])
-                }
-            )
+            scene = self.generate_scene_only(idea)
+            events_data = self.generate_events_only(scene, recall_context)
+            actions_data = self.generate_actions_only(scene, recall_context)
             
-            # 添加events（背景对话和环境描述）
-            for event_data in response_data.get("events", []):
-                event = Event(
-                    speaker=event_data.get("speaker", ""),
-                    content=event_data.get("content", ""),
-                    timestamp=event_data.get("timestamp", 0),
-                    event_type=event_data.get("event_type", "dialogue")
-                )
-                node.add_event(event)
+            node = self.compose_node(scene, events_data, actions_data)
             
-            # 添加chapter_actions（所有可执行动作）
-            for action_data in response_data.get("chapter_actions", []):
-                action = Action(
-                    id=action_data.get("id", str(uuid.uuid4())),
-                    description=action_data.get("description", ""),
-                    metadata={
-                        "navigation": action_data.get("navigation", "continue"),
-                        "response": action_data.get("response", ""),
-                        "effects": action_data.get("effects", {})
-                    }
-                )
-                
-                # 创建一个临时的ActionBindigng（目标节点稍后设置）
-                binding = ActionBinding(action=action, target_node=None, target_event=None)
-                node.outgoing_actions.append(binding)
+            # 动态生成初始世界状态
+            initial_state = self.generate_world_state(f"{idea}\n\n开场场景: {scene}", is_initial=True)
+            node.metadata["world_state"] = initial_state
             
             return node
-            
         except Exception as e:
             print(f"生成bootstrap节点失败: {e}")
-            # 返回一个基础节点
-            return Node(
-                scene=f"基于创意'{idea}'的故事开始了...",
-                node_type=NodeType.SCENE
-            )
-    
+            return Node(scene=f"基于创意'{idea}'的故事开始了...", node_type=NodeType.SCENE)
+
     def generate_next_node(self, cur_node: Node, cur_state: dict, selected_action: Optional[Action] = None) -> Node:
-        """
-        函数2: 根据当前节点 & 世界状态生成下一节点（自动附动作）
-        输入: 当前节点、当前world_state、选择的动作
-        输出: 新的Node对象
-        """
-        
-        current_scene = cur_node.scene
-        world_state = cur_state
-        
-        # 构建基于选择动作的prompt和回忆引导
-        action_context = ""
-        if selected_action:
-            action_context = f"""
-
-玩家选择的动作: {selected_action.description}
-动作效果预期: {selected_action.metadata.get('effects', {}).get('world_state_changes', '未知')}
-
-请先回忆类似情节发展：
-- 在你知道的经典作品中，类似的选择通常会导致什么样的结果？
-- 这种行动在故事中一般会引发什么样的情节转折？
-- 有哪些经典的情节发展模式可以参考？
-
-然后基于这些回忆和当前情况，生成与动作直接相关的下一个场景。"""
-        else:
-            action_context = f"""
-
-请先回忆当前场景类型的经典发展模式：
-- 类似的场景在经典作品中通常如何发展？
-- 这种情况下一般会出现什么样的转折或新元素？
-- 有什么经典的剧情推进方式可以借鉴？"""
-        
-        prompt = f"""
-你是一个充满想象力的叙事者以及游戏剧情创作者。根据当前剧情节点、世界状态和玩家的选择，生成下一个剧情节点。
-
-当前场景: {current_scene}
-
-当前世界状态: {json.dumps(world_state, ensure_ascii=False, indent=2)}{action_context}
-
-请生成下一个节点的JSON格式:
-{{
-    "scene": "下一段主线剧情（1-2段文字，承接上一个场景）",
-    "world_state": {{
-        "time": "更新后的时间",
-        "location": "当前地点（可能变化）",
-        "characters": ["当前相关角色"],
-        "key_facts": ["重要事实更新"]
-    }},
-    "events": [
-        {{
-            "speaker": "店小二",
-            "content": "客官，来杯热茶吗？",
-            "timestamp": 1,
-            "event_type": "dialogue"
-        }},
-        {{
-            "speaker": "",
-            "content": "街上传来马蹄声",
-            "timestamp": 2,
-            "event_type": "narration"
-        }}
-    ],
-    "chapter_actions": [
-        {{
-            "id": "action_1",
-            "description": "玩家选择描述",
-            "navigation": "continue|stay",
-            "response": "stay时的反馈文本（可选）",
-            "effects": {{
-                "world_state_changes": "对世界状态的影响"
-            }}
-        }},
-        {{
-            "id": "action_2",
-            "description": "玩家选择描述2", 
-            "navigation": "continue",
-            "effects": {{
-                "world_state_changes": "对世界状态的影响"
-            }}
-        }}
-    ]
-}}
-
-要求:
-- **scene必须直接体现玩家选择的动作结果**，承接上一个场景和动作的后果
-- 如果有玩家动作，场景应该展现这个动作的直接影响和后续发展
-- events是独立的背景对话或环境描述，**不包含在scene主线中**：
-  * 例如：路人闲聊、远处的声音、环境细节等
-  * 这些不影响主线剧情，纯粹是氛围
-- chapter_actions包含3-4个动作：
-  * 1-2个continue动作：推进到下一个场景
-  * 1-2个stay动作：在当前场景做事但不离开
-- navigation类型：
-  * "continue": 推进到下一个节点  
-  * "stay": 停留在原地但产生效果
-- 保持故事连贯性，尽可能少改动原有设定
-"""
-
-        messages = [
-            {"role": "system", "content": "你是一个充满想象力的叙事者以及游戏剧情创作者，擅长创造连贯的剧情发展和有趣的选择分支。"},
-            {"role": "user", "content": prompt}
-        ]
-        
+        """函数2: 根据当前节点 & 世界状态生成下一节点 (重构)"""
         try:
-            response_data = self.llm_client.generate_json_response(messages)
+            context = f"当前场景: {cur_node.scene}\n世界状态: {json.dumps(cur_state, ensure_ascii=False)}"
+            action_desc = selected_action.description if selected_action else "无"
+            if selected_action:
+                context += f"\n主人公的行动: {action_desc}"
             
-            # 创建新的Node对象
-            node = Node(
-                scene=response_data.get("scene", "剧情继续发展..."),
-                node_type=NodeType.SCENE,
-                metadata={
-                    "world_state": response_data.get("world_state", world_state),
-                    "chapter_actions": response_data.get("chapter_actions", [])
-                }
-            )
+            scene = self.generate_scene_only(context, cur_state, action_desc)
+            events_data = self.generate_events_only(scene, context)
+            actions_data = self.generate_actions_only(scene, context, cur_state)
             
-            # 添加events（背景对话和环境描述）
-            for event_data in response_data.get("events", []):
-                event = Event(
-                    speaker=event_data.get("speaker", ""),
-                    content=event_data.get("content", ""),
-                    timestamp=event_data.get("timestamp", 0),
-                    event_type=event_data.get("event_type", "dialogue")
-                )
-                node.add_event(event)
+            node = self.compose_node(scene, events_data, actions_data)
             
-            # 添加chapter_actions
-            for action_data in response_data.get("chapter_actions", []):
-                action = Action(
-                    id=action_data.get("id", str(uuid.uuid4())),
-                    description=action_data.get("description", ""),
-                    metadata={
-                        "navigation": action_data.get("navigation", "continue"),
-                        "response": action_data.get("response", ""),
-                        "effects": action_data.get("effects", {})
-                    }
-                )
-                
-                binding = ActionBinding(action=action, target_node=None, target_event=None)
-                node.outgoing_actions.append(binding)
+            # 动态生成更新后的世界状态
+            update_context = f"前序场景: {cur_node.scene}\n选择的行动: {action_desc}\n新场景: {scene}"
+            updated_state = self.generate_world_state(update_context, is_initial=False)
+
+            # 合并状态，确保连续性
+            final_state = cur_state.copy()
+            final_state.update(updated_state)
+            node.metadata["world_state"] = final_state
             
             return node
-            
         except Exception as e:
             print(f"生成下一个节点失败: {e}")
-            # 返回一个基础的下一个节点
-            return Node(
-                scene="故事继续发展，新的挑战出现了...",
-                node_type=NodeType.SCENE,
-                metadata={"world_state": world_state}
-            )
+            return Node(scene="故事继续发展，新的挑战出现了...", node_type=NodeType.SCENE, metadata={"world_state": cur_state})
     
     def apply_action(self, node: Node, action_id: str, state: dict) -> Tuple[Optional[Node], dict, str]:
         """
-        函数3: 执行玩家点的动作；若jump返回下个节点，否则留在原节点
+        函数3: 执行主人公的行动；若continue返回下个节点，否则留在原节点
         输入: 节点、动作ID、当前状态  
         输出: (next_node_or_None, new_state, response_text)
         """
@@ -391,11 +168,285 @@ class NarrativeGenerator:
             # 未知的navigation类型
             return None, new_state, f"你选择了：{target_action.description}"
 
+    def generate_scene_only(self, idea_or_context: str, current_state: Dict = None, selected_action: str = None) -> str:
+        """
+        只生成场景描述
+        """
+        context_prompt = self._build_prompt_context()
+        if selected_action:
+            prompt = f"""
+你是一位文学功底深厚的小说家以及游戏情节设计大师。根据当前情况和主人公的行动，创作新的精彩场景。
+用户设定：{context_prompt}
+当前情况: {idea_or_context}
+主人公行动: {selected_action}
+世界状态: {json.dumps(current_state or {}, ensure_ascii=False, indent=2)}
+
+请生成一个生动的场景描述，1-2段文字，展现主人公行动的直接结果和后续发展。
+只需要返回场景描述文本，不需要JSON格式。
+"""
+        else:
+            prompt = f"""
+你是一位擅长开篇的小说家。根据故事创意撰写引人入胜的开场。
+
+创意: {idea_or_context}
+
+请生成一个引人入胜的开场场景描述，1-2段文字，为后续的互动故事奠定基础。
+只需要返回场景描述文text，不需要JSON格式。
+"""
+        
+        messages = [
+            {"role": "system", "content": "你是文学界知名的小说家，特别擅长环境描写和场景营造，能够用优美细腻的文字让读者身临其境。"},
+            {"role": "user", "content": prompt}
+        ]
+        
+        response = self.llm_client.generate_response(messages)
+        return response.strip()
+    
+    def generate_events_only(self, scene: str, context: str = "") -> List[Dict]:
+        """
+        只生成背景事件
+        """
+        context_prompt = self._build_prompt_context()
+        prompt = f"""
+你是善于细节描写的小说家。根据主要场景，添加丰富的背景细节和氛围描写。
+用户设定：{context_prompt}
+当前场景: {scene}
+{f"上下文: {context}" if context else ""}
+
+请生成2-4个背景事件，这些事件：
+- 是独立的对话或环境描述
+- 不包含在主线剧情中
+- 纯粹用于氛围营造
+- 例如：路人对话、环境音效、背景细节
+
+请返回JSON数组格式：
+[
+    {{
+        "speaker": "路人甲",
+        "content": "对话内容",
+        "timestamp": 1,
+        "event_type": "dialogue"
+    }},
+    {{
+        "speaker": "",
+        "content": "环境描述",
+        "timestamp": 2,
+        "event_type": "narration"
+    }}
+]
+"""
+        
+        messages = [
+            {"role": "system", "content": "你是文笔细腻的小说家，擅长通过背景细节和环境描写来烘托故事氛围，增强读者的沉浸感。"},
+            {"role": "user", "content": prompt}
+        ]
+        
+        try:
+            response_data = self.llm_client.generate_json_response(messages)
+            # 兼容两种格式：直接数组 或 {"events": [...]} 
+            if isinstance(response_data, list):
+                return response_data
+            if isinstance(response_data, dict):
+                events = (response_data.get("events") 
+                         or response_data.get("background_events")
+                         or response_data.get("result") 
+                         or response_data.get("data"))
+                if isinstance(events, list):
+                    return events
+            print(f"背景事件响应格式错误: {response_data}")
+            return []
+        except Exception as e:
+            print(f"背景事件生成失败: {e}")
+            return []
+    
+    def generate_actions_only(self, scene: str, context: str = "", current_state: Dict = None) -> List[Dict]:
+        """只生成动作选项 (已修复)"""
+        context_prompt = self._build_prompt_context()
+        prompt = f"""
+你是擅长创作互动小说的作家。根据当前情节，为主人公设计富有戏剧张力的行动选择。
+用户设定: {context_prompt}
+当前场景: {scene}
+{f"上下文: {context}" if context else ""}
+世界状态: {json.dumps(current_state or {}, ensure_ascii=False, indent=2)}
+
+请生成3-4个动作选项：
+- 1-2个continue动作：推进剧情到下一个场景
+- 1-2个stay动作：在当前场景做事但不离开
+- 关于行为的描述要精炼
+
+请返回JSON数组:
+[
+    {{
+        "id": "action_1",
+        "description": "推进剧情的选择",
+        "navigation": "continue",
+        "effects": {{
+            "world_state_changes": "状态变化描述"
+        }}
+    }},
+    {{
+        "id": "action_2",
+        "description": "留在原地的动作",
+        "navigation": "stay",
+        "response": "执行后的反馈",
+        "effects": {{
+            "world_state_changes": "轻微状态变化"
+        }}
+    }}
+]
+"""
+        
+        messages = [
+            {"role": "system", "content": "你是经验丰富的互动小说作家，深谙故事节奏和戏剧冲突，能够设计出既符合人物性格又推动情节发展的关键选择。"},
+            {"role": "user", "content": prompt}
+        ]
+        
+        try:
+            response_data = self.llm_client.generate_json_response(messages)
+            if isinstance(response_data, list):
+                return response_data
+            if isinstance(response_data, dict):
+                actions = (response_data.get("chapter_actions") 
+                          or response_data.get("actions") 
+                          or response_data.get("choices")
+                          or response_data.get("options")  # <-- 新增
+                          or response_data.get("result") 
+                          or response_data.get("data"))
+                if isinstance(actions, list):
+                    return actions
+            print(f"动作选择响应格式错误: {response_data}")
+            return []
+        except Exception as e:
+            print(f"动作选择生成失败: {e}")
+            return []
+
+    def generate_world_state(self, context: str, is_initial: bool = False) -> Dict:
+        """
+        新增：根据上下文生成世界状态
+        """
+        prompt_instruction = "根据这个故事创意和开场，生成初始的世界状态。" if is_initial else "根据最新的剧情发展，更新世界状态。"
+
+        prompt = f"""
+你是一位严谨的世界观构建师。{prompt_instruction}
+
+上下文:
+{context}
+
+请返回一个JSON对象，包含以下结构，并根据故事需要添加额外变量：
+{{
+    "time": "时间描述",
+    "location": "地点描述",
+    "characters": {{
+        "主角名": "状态描述",
+        "配角名": "状态描述"
+    }},
+    "key_facts": ["关键事实1", "关键事实2"],
+    "story_variable_1": "值"
+}}
+"""
+        messages = [
+            {"role": "system", "content": "你是一个精确的数据生成器，总是返回格式正确的JSON。"},
+            {"role": "user", "content": prompt}
+        ]
+        try:
+            response_data = self.llm_client.generate_json_response(messages)
+            if isinstance(response_data, dict):
+                return response_data
+            else:
+                print(f"世界状态响应格式错误: {response_data}")
+                return {"error": "format error"}
+        except Exception as e:
+            print(f"世界状态生成失败: {e}")
+            return {"error": "generation failed"}
+
+    def compose_node(self, scene: str, events_data: List[Dict] = None, actions_data: List[Dict] = None) -> Node:
+        """
+        将各部分组合成完整节点
+        """
+        # 创建节点
+        node = Node(scene=scene, node_type=NodeType.SCENE)
+        
+        # 添加events
+        for event_data in (events_data or []):
+            event = Event(
+                speaker=event_data.get("speaker", ""),
+                content=event_data.get("content", ""),
+                timestamp=event_data.get("timestamp", 0),
+                event_type=event_data.get("event_type", "dialogue")
+            )
+            node.add_event(event)
+        
+        # 添加actions
+        for action_data in (actions_data or []):
+            navigation = action_data.get("navigation", "continue")
+            action = Action(
+                id=action_data.get("id", str(uuid.uuid4())),
+                description=action_data.get("description", ""),
+                is_key_action=(navigation == "continue"),  # continue动作是关键动作
+                metadata={
+                    "navigation": navigation,
+                    "response": action_data.get("response", ""),
+                    "effects": action_data.get("effects", {})
+                }
+            )
+            binding = ActionBinding(action=action, target_node=None, target_event=None)
+            node.outgoing_actions.append(binding)
+        
+        return node
+    
+    def regenerate_part(self, node: Node, part: str, context: str = "", current_state: Dict = None) -> Node:
+        """
+        重新生成节点的指定部分
+        
+        Args:
+            node: 当前节点
+            part: 要重新生成的部分 ("scene", "events", "actions")
+            context: 额外上下文
+            current_state: 当前世界状态
+        """
+        if part == "scene":
+            new_scene = self.generate_scene_only(node.scene, current_state, context)
+            node.scene = new_scene
+            
+        elif part == "events":
+            new_events_data = self.generate_events_only(node.scene, context)
+            # 清空现有events
+            node.events.clear()
+            # 添加新events
+            for event_data in new_events_data:
+                event = Event(
+                    speaker=event_data.get("speaker", ""),
+                    content=event_data.get("content", ""),
+                    timestamp=event_data.get("timestamp", 0),
+                    event_type=event_data.get("event_type", "dialogue")
+                )
+                node.add_event(event)
+                
+        elif part == "actions":
+            new_actions_data = self.generate_actions_only(node.scene, context, current_state)
+            # 清空现有actions
+            node.outgoing_actions.clear()
+            # 添加新actions
+            for action_data in new_actions_data:
+                action = Action(
+                    id=action_data.get("id", str(uuid.uuid4())),
+                    description=action_data.get("description", ""),
+                    metadata={
+                        "navigation": action_data.get("navigation", "continue"),
+                        "response": action_data.get("response", ""),
+                        "effects": action_data.get("effects", {})
+                    }
+                )
+                binding = ActionBinding(action=action, target_node=None, target_event=None)
+                node.outgoing_actions.append(binding)
+        
+        return node
+
 
 # 便捷的使用函数
 def create_story_from_idea(idea: str) -> Tuple[Node, dict]:
     """从一个创意开始创建故事"""
-    generator = NarrativeGenerator()
+    generator = NarrativeGenerator(LLMClient())
     
     # 生成第一个节点
     first_node = generator.bootstrap_node(idea)
