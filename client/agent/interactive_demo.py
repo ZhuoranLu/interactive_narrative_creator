@@ -172,7 +172,9 @@ if __name__ == "__main__":
     idea = get_user_input("请输入你的故事创意 (例如: '在一个雨夜，我遇到一个能预见未来的街头艺人'): ")
     
     print("\n⏳ 正在生成初始故事节点...")
-    first_node, initial_state = create_story_from_idea(idea)
+    # 直接调用 generator.bootstrap_node()
+    first_node = generator.bootstrap_node(idea)
+    initial_state = first_node.metadata.get("world_state", {})
     
     try:
         main_loop(editor, first_node)
