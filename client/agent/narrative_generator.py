@@ -468,48 +468,4 @@ class NarrativeGenerator:
                 binding = ActionBinding(action=action, target_node=None, target_event=None)
                 node.outgoing_actions.append(binding)
         
-        return node
-
-
-# 便捷的使用函数
-def create_story_from_idea(idea: str) -> Tuple[Node, dict]:
-    """从一个创意开始创建故事"""
-    generator = NarrativeGenerator(LLMClient())
-    
-    # 生成第一个节点
-    first_node = generator.bootstrap_node(idea)
-    
-    # 初始化世界状态
-    initial_state = first_node.metadata.get("world_state", {
-        "time": "故事开始",
-        "location": "未知",
-        "characters": [],
-        "key_facts": []
-    })
-    
-    return first_node, initial_state
-
-
-def continue_story(current_node: Node, action_id: str, current_state: dict) -> Tuple[Optional[Node], dict, str]:
-    """继续故事发展"""
-    generator = NarrativeGenerator()
-    return generator.apply_action(current_node, action_id, current_state)
-
-
-# 示例用法
-if __name__ == "__main__":
-    # 测试创建故事
-    print("=== 测试从创意生成故事 ===")
-    idea = "若诸葛亮没死，他会如何改变三国的历史"
-    
-    try:
-        first_node, initial_state = create_story_from_idea(idea)
-        print(f"故事开始: {first_node.scene}")
-        print(f"初始状态: {initial_state}")
-        print(f"可选动作数: {len(first_node.outgoing_actions)}")
-        
-        for i, binding in enumerate(first_node.outgoing_actions):
-            print(f"  {i+1}. {binding.action.description}")
-        
-    except Exception as e:
-        print(f"测试失败: {e}") 
+        return node 
