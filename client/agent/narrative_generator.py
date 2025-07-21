@@ -320,6 +320,34 @@ class NarrativeGenerator:
             print(f"动作选择生成失败: {e}")
             return []
 
+    def generate_effects_for_action(self, scene: str, action_description: str) -> Dict:
+        """为用户自定义的动作生成效果"""
+        context_prompt = self._build_prompt_context()
+        prompt = f"""
+你是一位经验丰富的叙事设计师。根据当前场景和用户提出的一个行动，预测这个行动可能产生的后果。
+
+用户设定: {context_prompt}
+当前场景: {scene}
+主人公的行动: {action_description}
+
+请只返回一个JSON对象，描述这个行动的效果:
+{{
+    "response": "当行动是'stay'类型时，给出的即时反馈文本。",
+    "effects": {{
+        "world_state_changes": "对世界状态、人物关系或剧情走向的详细影响描述。"
+    }}
+}}
+"""
+        messages = [
+            {"role": "system", "content": "你是一个精确的JSON生成器，专注于预测和描述故事中的因果关系。"},
+            {"role": "user", "content": prompt}
+        ]
+        try:
+            return self.llm_client.generate_json_response(messages)
+        except Exception as e:
+            print(f"为动作生成效果失败: {e}")
+            return {}
+
     def generate_world_state(self, context: str, is_initial: bool = False) -> Dict:
         """
         新增：根据上下文生成世界状态
