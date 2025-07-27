@@ -1,4 +1,4 @@
-interface User {
+export interface User {
   id: string;
   username: string;
   email: string;
@@ -30,6 +30,18 @@ interface RegisterRequest {
 
 interface ApiError {
   detail: string;
+}
+
+export interface Project {
+  id: string;
+  title: string;
+  description: string;
+  world_setting: string;
+  characters: string[];
+  style: string;
+  start_node_id?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 const API_BASE_URL = 'http://localhost:8000';
@@ -148,6 +160,26 @@ class AuthService {
     return null;
   }
 
+  async getUserProjects(): Promise<Project[]> {
+    try {
+      const response = await this.makeRequest<Project[]>('/user/projects');
+      return response;
+    } catch (error) {
+      console.error('Failed to get user projects:', error);
+      throw error;
+    }
+  }
+
+  async loadProjectStoryTree(projectId: string): Promise<any> {
+    try {
+      const response = await this.makeRequest<any>(`/user/projects/${projectId}/story-tree`);
+      return response;
+    } catch (error) {
+      console.error('Failed to load project story tree:', error);
+      throw error;
+    }
+  }
+
   getToken(): string | null {
     return this.token;
   }
@@ -155,4 +187,4 @@ class AuthService {
 
 // Export a singleton instance
 export const authService = new AuthService();
-export type { User, LoginRequest, LoginResponse, RegisterRequest }; 
+export type { LoginRequest, LoginResponse, RegisterRequest }; 

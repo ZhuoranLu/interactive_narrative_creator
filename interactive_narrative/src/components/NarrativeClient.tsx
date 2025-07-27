@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import StoryTreeGraph from './StoryTreeGraph';
+import StoryExampleModal from './StoryExampleModal';
+import { Project, authService } from '../services/authService';
 
 interface NarrativePayload {
   request_type: string;
@@ -52,6 +54,7 @@ const NarrativeClient = () => {
   const [userInput, setUserInput] = useState<string>('');
   const [storyTree, setStoryTree] = useState<StoryTree | null>(null);
   const [loadingStory, setLoadingStory] = useState<boolean>(false);
+  const [showModal, setShowModal] = useState<boolean>(false);
 
   const API_BASE_URL = 'http://localhost:8000';
 
@@ -110,7 +113,7 @@ const NarrativeClient = () => {
   };
 
   // Load story from public folder
-  const loadStoryExample = async () => {
+  const loadDefaultStoryExample = async () => {
     setLoadingStory(true);
     setError('');
     
@@ -125,6 +128,30 @@ const NarrativeClient = () => {
       setStoryTree(transformedStory);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load story';
+      setError(errorMessage);
+    } finally {
+      setLoadingStory(false);
+    }
+  };
+
+  // Handle selecting a project from modal
+  const handleSelectProject = async (project: Project) => {
+    setLoadingStory(true);
+    setError('');
+    
+    try {
+      // Load the project's story tree from the backend
+      const response = await authService.loadProjectStoryTree(project.id);
+      
+      if (response.success && response.data) {
+        const transformedStory = transformStoryData(response.data);
+        setStoryTree(transformedStory);
+        console.log('Successfully loaded project:', project.title);
+      } else {
+        throw new Error('Failed to load project data');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load project';
       setError(errorMessage);
     } finally {
       setLoadingStory(false);
@@ -201,7 +228,7 @@ const NarrativeClient = () => {
           Regenerate Scene
         </button>
         <button 
-          onClick={loadStoryExample}
+          onClick={loadDefaultStoryExample}
           disabled={loadingStory}
           style={{ 
             marginLeft: '10px',
@@ -213,7 +240,22 @@ const NarrativeClient = () => {
             cursor: loadingStory ? 'not-allowed' : 'pointer'
           }}
         >
-          {loadingStory ? 'Loading...' : 'Load Story Example'}
+          {loadingStory ? 'Loading...' : 'Load Default Example'}
+        </button>
+        <button 
+          onClick={() => setShowModal(true)}
+          disabled={loadingStory}
+          style={{ 
+            marginLeft: '10px',
+            backgroundColor: '#007bff',
+            color: 'white',
+            border: 'none',
+            padding: '8px 16px',
+            borderRadius: '4px',
+            cursor: loadingStory ? 'not-allowed' : 'pointer'
+          }}
+        >
+          Load My Stories
         </button>
       </div>
 
@@ -293,6 +335,13 @@ const NarrativeClient = () => {
 }`}
         </pre>
       </div>
+
+      {/* Story Example Modal */}
+      <StoryExampleModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onSelectExample={handleSelectProject}
+      />
     </div>
   );
 };

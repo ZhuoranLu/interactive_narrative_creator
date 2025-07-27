@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Story Loading</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+    <h1>Story Loading Test</h1>
+    
+    <div class="test-section">
+        <h3>Step 1: Login</h3>
+        <button onclick="testLogin()">Login as Admin</button>
+        <div id="login-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Step 2: Get User Projects</h3>
+        <button onclick="getUserProjects()">Get My Projects</button>
+        <div id="projects-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Step 3: Load Project Story Tree</h3>
+        <button onclick="loadProjectStoryTree()">Load Story Tree</button>
+        <div id="story-tree-result" class="result"></div>
+    </div>
+
+    <script>
+        let accessToken = '';
+        let projectId = '';
+        const API_BASE_URL = 'http://localhost:8000';
+
+        async function testLogin() {
+            const resultDiv = document.getElementById('login-result');
+            resultDiv.textContent = 'Logging in...';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                accessToken = data.access_token;
+                
+                resultDiv.textContent = `✅ Login successful!\nUser: ${data.user.username}\nToken: ${accessToken.substring(0, 50)}...`;
+                resultDiv.className = 'result success';
+            } catch (error) {
+                resultDiv.textContent = `❌ Login failed: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        async function getUserProjects() {
+            const resultDiv = document.getElementById('projects-result');
+            
+            if (!accessToken) {
+                resultDiv.textContent = '❌ Please login first';
+                resultDiv.className = 'result error';
+                return;
+            }
+
+            resultDiv.textContent = 'Getting projects...';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/user/projects`, {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const projects = await response.json();
+                
+                if (projects.length > 0) {
+                    projectId = projects[0].id;
+                    resultDiv.textContent = `✅ Found ${projects.length} projects:\n\n${JSON.stringify(projects, null, 2)}`;
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = '⚠️ No projects found';
+                    resultDiv.className = 'result';
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ Failed to get projects: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        async function loadProjectStoryTree() {
+            const resultDiv = document.getElementById('story-tree-result');
+            
+            if (!accessToken) {
+                resultDiv.textContent = '❌ Please login first';
+                resultDiv.className = 'result error';
+                return;
+            }
+
+            if (!projectId) {
+                resultDiv.textContent = '❌ Please get projects first';
+                resultDiv.className = 'result error';
+                return;
+            }
+
+            resultDiv.textContent = 'Loading story tree...';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/user/projects/${projectId}/story-tree`, {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    const nodeCount = Object.keys(data.data.nodes).length;
+                    resultDiv.textContent = `✅ Story tree loaded successfully!\nNodes: ${nodeCount}\nRoot: ${data.data.root_node_id}\n\nData:\n${JSON.stringify(data.data, null, 2)}`;
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = `❌ Failed to load story tree: ${data.error || 'Unknown error'}`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ Failed to load story tree: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+    </script>
+</body>
+</html> 

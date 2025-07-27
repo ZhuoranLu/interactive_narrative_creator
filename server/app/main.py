@@ -196,7 +196,7 @@ def read_root():
 
 # Database management endpoints
 @app.post("/projects", response_model=ProjectResponse)
-def create_project(request: ProjectCreateRequest, db: Session = Depends(get_db)):
+def create_project(request: ProjectCreateRequest, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
     """Create a new narrative project"""
     try:
         narrative_repo = NarrativeRepository(db)
@@ -205,7 +205,8 @@ def create_project(request: ProjectCreateRequest, db: Session = Depends(get_db))
             description=request.description,
             world_setting=request.world_setting,
             characters=request.characters,
-            style=request.style
+            style=request.style,
+            owner_id=current_user.id
         )
         
         return ProjectResponse(
@@ -271,6 +272,30 @@ def get_project(project_id: str, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching project: {str(e)}")
+
+@app.get("/user/projects", response_model=List[ProjectResponse])
+def get_user_projects(current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get projects owned by the current user"""
+    try:
+        narrative_repo = NarrativeRepository(db)
+        projects = narrative_repo.get_projects_by_owner(current_user.id)
+        
+        return [
+            ProjectResponse(
+                id=project.id,
+                title=project.title,
+                description=project.description or "",
+                world_setting=project.world_setting or "",
+                characters=project.characters or [],
+                style=project.style or "",
+                start_node_id=project.start_node_id,
+                created_at=project.created_at.isoformat(),
+                updated_at=project.updated_at.isoformat()
+            )
+            for project in projects
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching user projects: {str(e)}")
 
 @app.delete("/projects/{project_id}")
 def delete_project(project_id: str, db: Session = Depends(get_db)):
@@ -357,6 +382,73 @@ def load_narrative_graph(project_id: str, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error loading graph: {str(e)}")
+
+@app.get("/user/projects/{project_id}/story-tree")
+def load_user_project_story_tree(project_id: str, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Load a user's project as a story tree structure"""
+    try:
+        # First verify the project belongs to the current user
+        narrative_repo = NarrativeRepository(db)
+        project = narrative_repo.get_project(project_id)
+        
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+        
+        if project.owner_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied: You don't own this project")
+        
+        # Load nodes, events, and actions for this project
+        node_repo = NodeRepository(db)
+        event_repo = EventRepository(db)
+        action_repo = ActionRepository(db)
+        
+        nodes = node_repo.get_nodes_by_project(project_id)
+        
+        # Build story tree structure
+        story_tree = {
+            "nodes": {},
+            "connections": [],
+            "root_node_id": project.start_node_id
+        }
+        
+        for node in nodes:
+            # Get events for this node
+            events = event_repo.get_events_by_node(node.id)
+            
+            # Get actions for this node (from action_bindings)
+            outgoing_actions = []
+            
+            # Convert node to story tree format
+            story_tree["nodes"][node.id] = {
+                "id": node.id,
+                "level": node.level,
+                "type": node.node_type,
+                "parent_node_id": node.parent_node_id,
+                "data": {
+                    "scene": node.scene,
+                    "events": [
+                        {
+                            "id": event.id,
+                            "speaker": event.speaker,
+                            "content": event.content,
+                            "event_type": event.event_type,
+                            "timestamp": event.timestamp
+                        }
+                        for event in events
+                    ],
+                    "outgoing_actions": outgoing_actions
+                }
+            }
+        
+        return {
+            "success": True,
+            "data": story_tree
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error loading project story tree: {str(e)}")
 
 @app.post("/narrative", response_model=NarrativeResponse)
 def handle_narrative_request(payload: NarrativePayload, llm_client: LLMClient = Depends(get_llm_client), db: Session = Depends(get_db)):
