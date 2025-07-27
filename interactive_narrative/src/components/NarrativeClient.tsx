@@ -55,6 +55,7 @@ const NarrativeClient = () => {
   const [storyTree, setStoryTree] = useState<StoryTree | null>(null);
   const [loadingStory, setLoadingStory] = useState<boolean>(false);
   const [showModal, setShowModal] = useState<boolean>(false);
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
 
   const API_BASE_URL = 'http://localhost:8000';
 
@@ -146,6 +147,7 @@ const NarrativeClient = () => {
       if (response.success && response.data) {
         const transformedStory = transformStoryData(response.data);
         setStoryTree(transformedStory);
+        setCurrentProjectId(project.id);
         console.log('Successfully loaded project:', project.title);
       } else {
         throw new Error('Failed to load project data');
@@ -181,6 +183,26 @@ const NarrativeClient = () => {
   const handleApiError = (errorMessage: string) => {
     setError(errorMessage);
     console.error('StoryTreeGraph API Error:', errorMessage);
+  };
+
+  // Handle story reload after rollback
+  const handleStoryReload = async () => {
+    if (!currentProjectId) return;
+    
+    setLoadingStory(true);
+    try {
+      const response = await authService.loadProjectStoryTree(currentProjectId);
+      if (response.success && response.data) {
+        const transformedStory = transformStoryData(response.data);
+        setStoryTree(transformedStory);
+        console.log('Story reloaded after rollback');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to reload story';
+      setError(errorMessage);
+    } finally {
+      setLoadingStory(false);
+    }
   };
 
   // Example usage functions
@@ -282,16 +304,86 @@ const NarrativeClient = () => {
         >
           Load My Stories
         </button>
+        
+        {/* Quick Rollback Button */}
+        {currentProjectId && (
+          <button 
+            onClick={async () => {
+              if (!currentProjectId) return;
+              
+              try {
+                const { narrativeService } = await import('../services/narrativeService');
+                const historyData = await narrativeService.getProjectHistory(currentProjectId);
+                
+                if (historyData.history && historyData.history.length > 1) {
+                  const lastSnapshot = historyData.history[1]; // Skip current state
+                  const confirmRollback = window.confirm(
+                    `🔄 回滚故事到上一个状态？\n\n"${lastSnapshot.operation_description}"\n\n这将撤销最近的更改！`
+                  );
+                  
+                  if (confirmRollback) {
+                    await narrativeService.rollbackToSnapshot(currentProjectId, { snapshot_id: lastSnapshot.id });
+                    await handleStoryReload();
+                    setError(''); // Clear any previous errors
+                    console.log('Story rolled back successfully');
+                  }
+                } else {
+                  alert('ℹ️ 没有可回滚的历史状态');
+                }
+              } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'Rollback failed';
+                setError(`回滚失败: ${errorMessage}`);
+                console.error('Rollback error:', error);
+              }
+            }}
+            disabled={loadingStory}
+            style={{ 
+              marginLeft: '10px',
+              backgroundColor: '#FF6B35',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '4px',
+              cursor: loadingStory ? 'not-allowed' : 'pointer',
+              fontWeight: 'bold'
+            }}
+            title="回滚到上一个编辑状态"
+          >
+            🔄 撤销上一步
+          </button>
+        )}
       </div>
 
       {/* Story Tree Visualization */}
       {storyTree && (
         <div style={{ marginBottom: '30px' }}>
           <h3>Story Tree Visualization</h3>
+          
+          {/* Help info for rollback */}
+          {currentProjectId && (
+            <div style={{ 
+              background: '#e3f2fd', 
+              border: '1px solid #2196f3', 
+              borderRadius: '4px', 
+              padding: '10px', 
+              marginBottom: '15px',
+              fontSize: '14px' 
+            }}>
+              <strong>💡 编辑历史功能：</strong>
+              <ul style={{ margin: '5px 0', paddingLeft: '20px' }}>
+                <li><strong>🔄 撤销上一步</strong> - 快速回滚到上一个编辑状态</li>
+                <li><strong>📚 编辑历史</strong> - 查看完整编辑历史，可回滚到任意状态（最多5个历史记录）</li>
+                <li><strong>自动保存</strong> - 每次编辑操作前会自动创建历史快照</li>
+              </ul>
+            </div>
+          )}
+          
           <StoryTreeGraph 
             storyData={storyTree} 
             onNodeUpdate={handleNodeUpdate}
             onApiError={handleApiError}
+            projectId={currentProjectId || undefined}
+            onStoryReload={handleStoryReload}
           />
         </div>
       )}

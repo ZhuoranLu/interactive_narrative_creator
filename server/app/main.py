@@ -14,9 +14,10 @@ from app.agent.llm_client import LLMClient
 from app.database import get_db, create_tables
 from app.repositories import (
     NarrativeRepository, NodeRepository, EventRepository, 
-    ActionRepository, WorldStateRepository, NarrativeGraphRepository
+    ActionRepository, WorldStateRepository, NarrativeGraphRepository, StoryHistoryRepository
 )
 from app.user_repositories import UserRepository, TokenRepository, SessionRepository, UserPreferencesRepository
+from app.database import StoryEditHistory
 
 logger = logging.getLogger(__name__)
 
@@ -1259,3 +1260,175 @@ def delete_action_binding(binding_id: str, current_user = Depends(get_current_us
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting action binding: {str(e)}")
+
+# ==================== STORY HISTORY ENDPOINTS ====================
+
+class HistoryEntryResponse(BaseModel):
+    id: str
+    operation_type: str
+    operation_description: str
+    affected_node_id: Optional[str]
+    created_at: datetime
+
+class ProjectHistoryResponse(BaseModel):
+    history: List[HistoryEntryResponse]
+    total_count: int
+
+class CreateSnapshotRequest(BaseModel):
+    operation_type: str
+    operation_description: str
+    affected_node_id: Optional[str] = None
+
+class RollbackRequest(BaseModel):
+    snapshot_id: str
+
+@app.get("/projects/{project_id}/history", response_model=ProjectHistoryResponse)
+def get_project_history(project_id: str, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get edit history for a project"""
+    try:
+        narrative_repo = NarrativeRepository(db)
+        history_repo = StoryHistoryRepository(db)
+        
+        # Verify project ownership
+        project = narrative_repo.get_project(project_id)
+        if not project or project.owner_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied: You don't own this project")
+        
+        # Get history
+        history_entries = history_repo.get_project_history(project_id)
+        
+        history_response = [
+            HistoryEntryResponse(
+                id=entry.id,
+                operation_type=entry.operation_type,
+                operation_description=entry.operation_description or "",
+                affected_node_id=entry.affected_node_id,
+                created_at=entry.created_at
+            )
+            for entry in history_entries
+        ]
+        
+        return ProjectHistoryResponse(
+            history=history_response,
+            total_count=len(history_response)
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting project history: {str(e)}")
+
+@app.post("/projects/{project_id}/history/snapshot")
+def create_snapshot(project_id: str, request: CreateSnapshotRequest, 
+                   current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Create a snapshot of the current project state"""
+    try:
+        narrative_repo = NarrativeRepository(db)
+        history_repo = StoryHistoryRepository(db)
+        
+        # Verify project ownership
+        project = narrative_repo.get_project(project_id)
+        if not project or project.owner_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied: You don't own this project")
+        
+        # Create snapshot
+        current_snapshot = history_repo._create_current_snapshot(project_id)
+        
+        history_entry = history_repo.save_snapshot(
+            project_id=project_id,
+            user_id=current_user.id,
+            snapshot_data=current_snapshot,
+            operation_type=request.operation_type,
+            operation_description=request.operation_description,
+            affected_node_id=request.affected_node_id
+        )
+        
+        return {
+            "success": True,
+            "snapshot_id": history_entry.id,
+            "message": "Snapshot created successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating snapshot: {str(e)}")
+
+@app.post("/projects/{project_id}/history/rollback")
+def rollback_to_snapshot(project_id: str, request: RollbackRequest,
+                        current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Rollback project to a previous snapshot"""
+    try:
+        narrative_repo = NarrativeRepository(db)
+        history_repo = StoryHistoryRepository(db)
+        
+        # Verify project ownership
+        project = narrative_repo.get_project(project_id)
+        if not project or project.owner_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied: You don't own this project")
+        
+        # Check if snapshot exists
+        snapshot = db.query(StoryEditHistory).filter(
+            StoryEditHistory.id == request.snapshot_id,
+            StoryEditHistory.project_id == project_id
+        ).first()
+        
+        if not snapshot:
+            raise HTTPException(status_code=404, detail=f"Snapshot {request.snapshot_id} not found")
+        
+        # Perform rollback
+        logger.info(f"Attempting rollback for project {project_id} to snapshot {request.snapshot_id}")
+        success = history_repo.restore_snapshot(project_id, request.snapshot_id, current_user.id)
+        
+        if not success:
+            logger.error(f"Rollback failed for project {project_id}")
+            raise HTTPException(status_code=400, detail="Failed to rollback to snapshot. Check server logs for details.")
+        
+        logger.info(f"Rollback successful for project {project_id}")
+        return {
+            "success": True,
+            "message": "Successfully rolled back to snapshot"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error during rollback: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error during rollback: {str(e)}")
+
+@app.delete("/projects/{project_id}/history/{snapshot_id}")
+def delete_snapshot(project_id: str, snapshot_id: str,
+                   current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Delete a specific snapshot from history"""
+    try:
+        narrative_repo = NarrativeRepository(db)
+        history_repo = StoryHistoryRepository(db)
+        
+        # Verify project ownership
+        project = narrative_repo.get_project(project_id)
+        if not project or project.owner_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied: You don't own this project")
+        
+        # Find and delete snapshot
+        snapshot = db.query(StoryEditHistory).filter(
+            StoryEditHistory.id == snapshot_id,
+            StoryEditHistory.project_id == project_id
+        ).first()
+        
+        if not snapshot:
+            raise HTTPException(status_code=404, detail="Snapshot not found")
+        
+        db.delete(snapshot)
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "Snapshot deleted successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting snapshot: {str(e)}")

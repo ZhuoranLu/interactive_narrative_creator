@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { narrativeService } from '../services/narrativeService';
+import StoryHistoryPanel from './StoryHistoryPanel';
 
 interface StoryNode {
   id: string;
@@ -38,11 +39,19 @@ interface StoryTree {
 
 interface StoryTreeGraphProps {
   storyData: StoryTree;
+  projectId?: string;  // Add projectId for history functionality
   onNodeUpdate?: (nodeId: string, updatedNode: StoryNode) => void;
   onApiError?: (error: string) => void;
+  onStoryReload?: () => void;  // Callback to reload entire story after rollback
 }
 
-const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({ storyData, onNodeUpdate, onApiError }) => {
+const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({ 
+  storyData, 
+  projectId,
+  onNodeUpdate, 
+  onApiError,
+  onStoryReload 
+}) => {
   const { nodes, connections } = storyData;
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [editingNode, setEditingNode] = useState<StoryNode | null>(null);
@@ -65,6 +74,7 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({ storyData, onNodeUpdate
     message: string;
     type: 'success' | 'error' | 'info';
   } | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
 
   // Calculate node positions
   const getNodePosition = (nodeId: string) => {
@@ -90,6 +100,29 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({ storyData, onNodeUpdate
     setTimeout(() => setSyncStatus(null), 3000);
   };
 
+  const createSnapshot = async (operationType: string, operationDescription: string, affectedNodeId?: string) => {
+    if (!projectId) return;
+    
+    try {
+      await narrativeService.createSnapshot(projectId, {
+        operation_type: operationType,
+        operation_description: operationDescription,
+        affected_node_id: affectedNodeId
+      });
+      console.log('Snapshot created:', operationType, operationDescription);
+    } catch (error) {
+      console.warn('Failed to create snapshot:', error);
+      // Don't block the main operation if snapshot fails
+    }
+  };
+
+  const handleRollback = async (snapshotId: string) => {
+    if (onStoryReload) {
+      onStoryReload(); // Reload the entire story data
+    }
+    showSyncStatus('✅ 故事已回滚到历史状态', 'success');
+  };
+
   const handleNodeClick = (nodeId: string) => {
     const node = nodes[nodeId];
     setSelectedNodeId(nodeId);
@@ -113,6 +146,10 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({ storyData, onNodeUpdate
 
     setIsLoading(true);
     try {
+      // Create snapshot before making changes
+      const operationDescription = `编辑节点: ${editingNode.data.scene.substring(0, 50)}${editingNode.data.scene.length > 50 ? '...' : ''}`;
+      await createSnapshot('edit_operation', operationDescription, selectedNodeId);
+      
       // Track new items created for proper state update
       const newEventIds: string[] = [];
       const newActionIds: string[] = [];
@@ -303,6 +340,11 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({ storyData, onNodeUpdate
     try {
       setIsLoading(true);
       
+      // Create snapshot before deletion
+      if (actionToRemove.id && !actionToRemove.id.startsWith('action_') && selectedNodeId) {
+        await createSnapshot('delete_action', `删除动作: ${actionToRemove.description}`, selectedNodeId);
+      }
+      
       // If this is an existing action (has a proper ID), delete it from the database
       if (actionToRemove.id && !actionToRemove.id.startsWith('action_')) {
         await narrativeService.deleteAction(actionToRemove.id);
@@ -371,6 +413,11 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({ storyData, onNodeUpdate
     try {
       setIsLoading(true);
       
+      // Create snapshot before deletion
+      if (eventToRemove.id && selectedNodeId) {
+        await createSnapshot('delete_event', `删除事件: ${eventToRemove.content.substring(0, 30)}${eventToRemove.content.length > 30 ? '...' : ''}`, selectedNodeId);
+      }
+      
       // If this is an existing event (has an ID), delete it from the database
       if (eventToRemove.id) {
         await narrativeService.deleteEvent(eventToRemove.id);
@@ -414,6 +461,98 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({ storyData, onNodeUpdate
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '600px', overflow: 'auto', border: '1px solid #ccc' }}>
+      {/* History Controls - Made more prominent */}
+      {projectId && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '10px',
+            right: '10px',
+            display: 'flex',
+            gap: '8px',
+            zIndex: 100
+          }}
+        >
+          {/* Quick Rollback Button */}
+          <button
+            onClick={async () => {
+              if (!projectId) return;
+              
+              try {
+                console.log('Fetching project history...');
+                const historyData = await narrativeService.getProjectHistory(projectId);
+                console.log('History data:', historyData);
+                
+                if (historyData.history && historyData.history.length > 1) {
+                  const lastSnapshot = historyData.history[1]; // Skip current state
+                  console.log('Last snapshot:', lastSnapshot);
+                  
+                  const confirmRollback = window.confirm(
+                    `🔄 快速回滚到上一个状态？\n\n"${lastSnapshot.operation_description}"\n\n这将撤销最近的更改！`
+                  );
+                  
+                  if (confirmRollback) {
+                    console.log('Starting rollback to snapshot:', lastSnapshot.id);
+                    showSyncStatus('🔄 正在回滚...', 'info');
+                    
+                    await narrativeService.rollbackToSnapshot(projectId, { snapshot_id: lastSnapshot.id });
+                    console.log('Rollback successful, reloading story...');
+                    
+                    if (onStoryReload) {
+                      onStoryReload();
+                    }
+                    showSyncStatus('✅ 已回滚到上一状态', 'success');
+                  }
+                } else {
+                  console.log('No history available for rollback');
+                  showSyncStatus('ℹ️ 没有可回滚的历史状态', 'info');
+                }
+              } catch (error) {
+                console.error('Rollback error:', error);
+                const errorMessage = error instanceof Error ? error.message : 'Rollback failed';
+                showSyncStatus(`❌ 回滚失败: ${errorMessage}`, 'error');
+                if (onApiError) {
+                  onApiError(`回滚操作失败: ${errorMessage}`);
+                }
+              }
+            }}
+            style={{
+              background: '#FF6B35',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '8px 12px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+            }}
+            title="快速回滚到上一个编辑状态"
+          >
+            🔄 撤销
+          </button>
+          
+          {/* History Panel Button */}
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            style={{
+              background: showHistory ? '#28a745' : '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '8px 12px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+            }}
+            title={showHistory ? "关闭编辑历史面板" : "打开编辑历史面板，查看所有历史状态"}
+          >
+            {showHistory ? '📚 关闭历史' : '📚 编辑历史'}
+          </button>
+        </div>
+      )}
+
       <svg width="1200" height="800" style={{ background: '#f9f9f9' }}>
         {/* Render connections */}
         {connections.map((connection, index) => {
@@ -790,6 +929,17 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({ storyData, onNodeUpdate
         >
           {syncStatus.message}
         </div>
+      )}
+
+      {/* Story History Panel */}
+      {projectId && (
+        <StoryHistoryPanel
+          projectId={projectId}
+          isVisible={showHistory}
+          onClose={() => setShowHistory(false)}
+          onRollback={handleRollback}
+          onError={onApiError}
+        />
       )}
     </div>
   );

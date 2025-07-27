@@ -65,6 +65,29 @@ interface ActionBindingUpdateData {
   target_event_id?: string;
 }
 
+interface HistoryEntry {
+  id: string;
+  operation_type: string;
+  operation_description: string;
+  affected_node_id?: string;
+  created_at: string;
+}
+
+interface ProjectHistory {
+  history: HistoryEntry[];
+  total_count: number;
+}
+
+interface CreateSnapshotData {
+  operation_type: string;
+  operation_description: string;
+  affected_node_id?: string;
+}
+
+interface RollbackData {
+  snapshot_id: string;
+}
+
 class NarrativeService {
   private getAuthHeaders(): HeadersInit {
     const token = localStorage.getItem('access_token');
@@ -94,6 +117,32 @@ class NarrativeService {
     }
 
     return response.json();
+  }
+
+  // ==================== STORY HISTORY OPERATIONS ====================
+
+  async getProjectHistory(projectId: string): Promise<ProjectHistory> {
+    return this.makeRequest(`/projects/${projectId}/history`);
+  }
+
+  async createSnapshot(projectId: string, snapshotData: CreateSnapshotData): Promise<any> {
+    return this.makeRequest(`/projects/${projectId}/history/snapshot`, {
+      method: 'POST',
+      body: JSON.stringify(snapshotData)
+    });
+  }
+
+  async rollbackToSnapshot(projectId: string, rollbackData: RollbackData): Promise<any> {
+    return this.makeRequest(`/projects/${projectId}/history/rollback`, {
+      method: 'POST',
+      body: JSON.stringify(rollbackData)
+    });
+  }
+
+  async deleteSnapshot(projectId: string, snapshotId: string): Promise<any> {
+    return this.makeRequest(`/projects/${projectId}/history/${snapshotId}`, {
+      method: 'DELETE'
+    });
   }
 
   // ==================== NODE OPERATIONS ====================
@@ -284,5 +333,9 @@ export type {
   ActionCreateData,
   ActionUpdateData,
   ActionBindingCreateData,
-  ActionBindingUpdateData
+  ActionBindingUpdateData,
+  HistoryEntry,
+  ProjectHistory,
+  CreateSnapshotData,
+  RollbackData
 }; 

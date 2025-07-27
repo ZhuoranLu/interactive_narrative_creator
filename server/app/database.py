@@ -278,6 +278,7 @@ class NarrativeProject(Base):
     nodes = relationship("NarrativeNode", foreign_keys="NarrativeNode.project_id", back_populates="project", cascade="all, delete-orphan")
     start_node = relationship("NarrativeNode", foreign_keys=[start_node_id], post_update=True)
     collaborators = relationship("ProjectCollaborator", back_populates="project", cascade="all, delete-orphan")
+    edit_history = relationship("StoryEditHistory", back_populates="project", cascade="all, delete-orphan")
 
 
 class NarrativeNode(Base):
@@ -385,6 +386,34 @@ class WorldState(Base):
     # Relationships
     project = relationship("NarrativeProject")
     current_node = relationship("NarrativeNode")
+
+
+class StoryEditHistory(Base):
+    """Story edit history for undo functionality"""
+    __tablename__ = "story_edit_history"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    project_id = Column(String, ForeignKey('narrative_projects.id', ondelete='CASCADE'), nullable=False)
+    user_id = Column(String, ForeignKey('users.id'), nullable=False)
+    
+    # Snapshot data
+    snapshot_data = Column(JSON, nullable=False)  # Complete story state
+    operation_type = Column(String, nullable=False)  # 'edit_scene', 'add_event', 'delete_action', etc.
+    operation_description = Column(String)  # Human readable description
+    affected_node_id = Column(String)  # Which node was affected
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    project = relationship("NarrativeProject", back_populates="edit_history")
+    user = relationship("User")
+    
+    class Config:
+        from_attributes = True
+
+# Add the relationship to NarrativeProject
+NarrativeProject.edit_history = relationship("StoryEditHistory", back_populates="project", cascade="all, delete-orphan")
 
 
 # Database session dependency
