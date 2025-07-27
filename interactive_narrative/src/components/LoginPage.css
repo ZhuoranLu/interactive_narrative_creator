@@ -172,6 +172,51 @@
   text-decoration: underline;
 }
 
+/* Demo credentials section */
+.demo-credentials {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.demo-credentials h4 {
+  color: #ffffff;
+  font-size: 0.9rem;
+  margin: 0 0 1rem 0;
+  text-align: center;
+  font-weight: 500;
+}
+
+.demo-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.demo-button {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  color: #ffffff;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.demo-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.demo-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
 /* 响应式设计 */
 @media (max-width: 480px) {
   .login-container {

@@ -1,10 +1,14 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from pydantic import BaseModel, EmailStr
 from typing import Any, Optional, Dict, List
 from contextlib import asynccontextmanager
 from sqlalchemy.orm import Session
 import logging
+from datetime import datetime, timedelta
+import jwt
+import os
 
 from app.agent.llm_client import LLMClient
 from app.database import get_db, create_tables
@@ -12,8 +16,17 @@ from app.repositories import (
     NarrativeRepository, NodeRepository, EventRepository, 
     ActionRepository, WorldStateRepository, NarrativeGraphRepository
 )
+from app.user_repositories import UserRepository, TokenRepository, SessionRepository, UserPreferencesRepository
 
 logger = logging.getLogger(__name__)
+
+# JWT configuration
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+# Security
+security = HTTPBearer()
 
 # Global LLM client instance
 llm_client_instance = None
@@ -89,6 +102,93 @@ class SaveGraphRequest(BaseModel):
     project_id: Optional[str] = None
     graph_data: Dict[str, Any]
     world_state: Optional[Dict[str, Any]] = None
+
+# ====================
+# USER AUTHENTICATION MODELS
+# ====================
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+class UserRegister(BaseModel):
+    username: str
+    email: EmailStr
+    password: str
+    full_name: Optional[str] = None
+
+class UserResponse(BaseModel):
+    id: str
+    username: str
+    email: str
+    full_name: Optional[str]
+    is_active: bool
+    is_verified: bool
+    is_premium: bool
+    token_balance: int
+    created_at: datetime
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str
+    user: UserResponse
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
+    user_id: Optional[str] = None
+
+# ====================
+# AUTHENTICATION FUNCTIONS
+# ====================
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    """Create JWT access token"""
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Verify JWT token"""
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        user_id: str = payload.get("user_id")
+        if username is None or user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        token_data = TokenData(username=username, user_id=user_id)
+    except jwt.PyJWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return token_data
+
+def get_current_user(token_data: TokenData = Depends(verify_token), db: Session = Depends(get_db)):
+    """Get current authenticated user"""
+    user_repo = UserRepository(db)
+    user = user_repo.get_user_by_id(token_data.user_id)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Inactive user"
+        )
+    return user
 
 @app.get("/")
 def read_root():
@@ -391,3 +491,140 @@ def continue_story(request: dict):
 @app.post("/generate_plot")
 def generate_plot(request: dict):
     return {"message": "Use /narrative endpoint with request_type='regenerate_part'"}
+
+
+# ====================
+# USER AUTHENTICATION ENDPOINTS
+# ====================
+
+@app.post("/auth/login", response_model=LoginResponse)
+def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
+    """User login endpoint"""
+    user_repo = UserRepository(db)
+    
+    # Get user by username
+    user = user_repo.get_user_by_username(user_credentials.username)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Verify password
+    if not user_repo.verify_password(user, user_credentials.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Check if user is active
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Account is deactivated"
+        )
+    
+    # Create access token
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username, "user_id": user.id}, 
+        expires_delta=access_token_expires
+    )
+    
+    # Update last login
+    user_repo.update_last_login(user.id)
+    
+    # Create user response
+    user_response = UserResponse(
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        full_name=user.full_name,
+        is_active=user.is_active,
+        is_verified=user.is_verified,
+        is_premium=user.is_premium,
+        token_balance=user.token_balance,
+        created_at=user.created_at
+    )
+    
+    return LoginResponse(
+        access_token=access_token,
+        token_type="bearer",
+        user=user_response
+    )
+
+@app.post("/auth/register", response_model=UserResponse)
+def register(user_data: UserRegister, db: Session = Depends(get_db)):
+    """User registration endpoint"""
+    user_repo = UserRepository(db)
+    
+    # Check if username already exists
+    if user_repo.get_user_by_username(user_data.username):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username already registered"
+        )
+    
+    # Check if email already exists
+    if user_repo.get_user_by_email(user_data.email):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+    
+    # Create new user
+    try:
+        user = user_repo.create_user(
+            username=user_data.username,
+            email=user_data.email,
+            password=user_data.password,
+            full_name=user_data.full_name
+        )
+        
+        return UserResponse(
+            id=user.id,
+            username=user.username,
+            email=user.email,
+            full_name=user.full_name,
+            is_active=user.is_active,
+            is_verified=user.is_verified,
+            is_premium=user.is_premium,
+            token_balance=user.token_balance,
+            created_at=user.created_at
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create user: {str(e)}"
+        )
+
+@app.get("/auth/me", response_model=UserResponse)
+def get_current_user_info(current_user = Depends(get_current_user)):
+    """Get current user information"""
+    return UserResponse(
+        id=current_user.id,
+        username=current_user.username,
+        email=current_user.email,
+        full_name=current_user.full_name,
+        is_active=current_user.is_active,
+        is_verified=current_user.is_verified,
+        is_premium=current_user.is_premium,
+        token_balance=current_user.token_balance,
+        created_at=current_user.created_at
+    )
+
+@app.post("/auth/logout")
+def logout(current_user = Depends(get_current_user)):
+    """User logout endpoint"""
+    # In a more sophisticated implementation, you would invalidate the token
+    # For now, we'll just return a success message
+    return {"message": "Successfully logged out"}
+
+@app.get("/auth/token-balance")
+def get_token_balance(current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get user's current token balance"""
+    token_repo = TokenRepository(db)
+    balance = token_repo.get_user_balance(current_user.id)
+    return {"user_id": current_user.id, "token_balance": balance}

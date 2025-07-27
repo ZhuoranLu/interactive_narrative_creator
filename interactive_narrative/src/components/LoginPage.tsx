@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
+import { authService, User } from '../services/authService';
 import './LoginPage.css';
 
 interface LoginPageProps {
-  onLogin: (username: string, password: string) => void;
+  onLogin: (user: User) => void;
   onBack?: () => void;
 }
 
@@ -24,11 +25,33 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onBack }) => {
     setError('');
     
     try {
-      await onLogin(username, password);
+      const response = await authService.login({
+        username: username.trim(),
+        password: password
+      });
+      
+      // Call parent's onLogin with user data
+      onLogin(response.user);
     } catch (err) {
-      setError('登录失败，请检查用户名和密码');
+      console.error('Login error:', err);
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('登录失败，请检查用户名和密码');
+      }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Demo credentials helper
+  const fillDemoCredentials = (userType: 'demo' | 'admin') => {
+    if (userType === 'demo') {
+      setUsername('demo_user');
+      setPassword('demo123');
+    } else {
+      setUsername('admin');
+      setPassword('admin123');
     }
   };
 
@@ -92,6 +115,28 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onBack }) => {
             )}
           </div>
         </form>
+        
+        <div className="demo-credentials">
+          <h4>测试账户</h4>
+          <div className="demo-buttons">
+            <button
+              type="button"
+              className="demo-button"
+              onClick={() => fillDemoCredentials('demo')}
+              disabled={isLoading}
+            >
+              填入Demo用户 (demo_user/demo123)
+            </button>
+            <button
+              type="button"
+              className="demo-button"
+              onClick={() => fillDemoCredentials('admin')}
+              disabled={isLoading}
+            >
+              填入管理员 (admin/admin123)
+            </button>
+          </div>
+        </div>
         
         <div className="login-footer">
           <p>还没有账户？ <a href="#register">注册</a></p>

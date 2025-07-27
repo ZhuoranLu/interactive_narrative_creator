@@ -1,10 +1,11 @@
 import React from 'react';
 import NarrativeClient from './NarrativeClient';
 import Navigation from './Navigation';
+import { User } from '../services/authService';
 import './HomePage.css';
 
 interface HomePageProps {
-  currentUser: string;
+  currentUser: User | null;
   onLogout: () => void;
 }
 

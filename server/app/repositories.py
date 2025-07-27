@@ -35,7 +35,7 @@ class NarrativeRepository:
         self.db = db
 
     def create_project(self, title: str, description: str = "", world_setting: str = "", 
-                      characters: List[str] = None, style: str = "") -> NarrativeProject:
+                      characters: List[str] = None, style: str = "", owner_id: str = None) -> NarrativeProject:
         """Create a new narrative project"""
         project = NarrativeProject(
             title=title,
@@ -43,6 +43,7 @@ class NarrativeRepository:
             world_setting=world_setting,
             characters=characters or [],
             style=style,
+            owner_id=owner_id,
             meta_data={}
         )
         self.db.add(project)
@@ -57,6 +58,41 @@ class NarrativeRepository:
     def get_all_projects(self) -> List[NarrativeProject]:
         """Get all projects"""
         return self.db.query(NarrativeProject).all()
+    
+    def get_projects_by_owner(self, owner_id: str, skip: int = 0, limit: int = 100) -> List[NarrativeProject]:
+        """Get projects owned by a specific user"""
+        return self.db.query(NarrativeProject).filter(
+            NarrativeProject.owner_id == owner_id
+        ).offset(skip).limit(limit).all()
+    
+    def get_public_projects(self, skip: int = 0, limit: int = 100) -> List[NarrativeProject]:
+        """Get public projects"""
+        return self.db.query(NarrativeProject).filter(
+            NarrativeProject.is_public == True
+        ).offset(skip).limit(limit).all()
+    
+    def check_project_access(self, project_id: str, user_id: str) -> bool:
+        """Check if user has access to project (owner or collaborator)"""
+        from .database import ProjectCollaborator
+        
+        project = self.get_project(project_id)
+        if not project:
+            return False
+        
+        # Check if user is owner
+        if project.owner_id == user_id:
+            return True
+        
+        # Check if user is collaborator
+        collaborator = self.db.query(ProjectCollaborator).filter(
+            and_(
+                ProjectCollaborator.project_id == project_id,
+                ProjectCollaborator.user_id == user_id,
+                ProjectCollaborator.is_active == True
+            )
+        ).first()
+        
+        return collaborator is not None
 
     def update_project(self, project_id: str, **updates) -> Optional[NarrativeProject]:
         """Update a project"""

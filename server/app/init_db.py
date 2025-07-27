@@ -14,6 +14,7 @@ sys.path.insert(0, parent_dir)
 
 from app.database import engine, Base, SessionLocal
 from app.repositories import NarrativeRepository, NodeRepository, EventRepository, ActionRepository, WorldStateRepository
+from app.user_repositories import UserRepository, TokenRepository, UserPreferencesRepository
 
 
 def create_database():
@@ -30,19 +31,64 @@ def create_sample_data():
     db = SessionLocal()
     try:
         # Create repositories
+        user_repo = UserRepository(db)
+        token_repo = TokenRepository(db)
         narrative_repo = NarrativeRepository(db)
         node_repo = NodeRepository(db)
         event_repo = EventRepository(db)
         action_repo = ActionRepository(db)
         world_state_repo = WorldStateRepository(db)
         
-        # Create a sample project
+        # Create sample users
+        print("Creating sample users...")
+        
+        # Create demo user
+        demo_user = user_repo.create_user(
+            username="demo_user",
+            email="demo@example.com",
+            password="demo123",
+            full_name="Demo User",
+            is_verified=True
+        )
+        
+        # Give demo user some bonus tokens
+        token_repo.add_tokens(
+            user_id=demo_user.id,
+            amount=5000,
+            transaction_type="bonus",
+            description="Welcome bonus tokens"
+        )
+        
+        print(f"✅ Created demo user: {demo_user.username} (ID: {demo_user.id})")
+        
+        # Create admin user
+        admin_user = user_repo.create_user(
+            username="admin",
+            email="admin@example.com", 
+            password="admin123",
+            full_name="Administrator",
+            is_verified=True,
+            is_premium=True
+        )
+        
+        # Give admin user extra tokens
+        token_repo.add_tokens(
+            user_id=admin_user.id,
+            amount=10000,
+            transaction_type="bonus",
+            description="Admin bonus tokens"
+        )
+        
+        print(f"✅ Created admin user: {admin_user.username} (ID: {admin_user.id})")
+        
+        # Create a sample project owned by demo user
         project = narrative_repo.create_project(
             title="Sample Interactive Story",
             description="A sample story to test the database functionality",
             world_setting="Modern urban fantasy",
             characters=["Detective Sarah", "Mysterious Figure", "Cafe Owner"],
-            style="Mystery/Thriller"
+            style="Mystery/Thriller",
+            owner_id=demo_user.id  # Associate with demo user
         )
         
         print(f"✅ Created project: {project.title} (ID: {project.id})")
@@ -149,15 +195,40 @@ def create_sample_data():
             }
         )
         
-        print(f"✅ Created world state")
+        # Record some sample token usage
+        token_repo.consume_tokens(
+            user_id=demo_user.id,
+            amount=50,
+            project_id=project.id,
+            operation_type="generate_scene",
+            description="Generated initial story scene"
+        )
+        
+        token_repo.consume_tokens(
+            user_id=demo_user.id,
+            amount=30,
+            project_id=project.id,
+            operation_type="generate_dialogue",
+            description="Generated character dialogue"
+        )
+        
+        print(f"✅ Created world state and token usage examples")
         print(f"🎉 Sample data creation complete!")
+        print(f"")
+        print(f"📋 Sample Login Credentials:")
+        print(f"   Demo User - Username: demo_user, Password: demo123")
+        print(f"   Admin User - Username: admin, Password: admin123")
+        print(f"")
+        print(f"🔑 Sample IDs for API testing:")
+        print(f"   Demo User ID: {demo_user.id}")
+        print(f"   Admin User ID: {admin_user.id}")
         print(f"   Project ID: {project.id}")
         print(f"   Root Node ID: {root_node.id}")
-        print(f"   You can test the API with these IDs")
         
     except Exception as e:
         print(f"❌ Error creating sample data: {e}")
         db.rollback()
+        raise
     finally:
         db.close()
 

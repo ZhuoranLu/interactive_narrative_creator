@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import LoginPage from './components/LoginPage';
@@ -6,32 +6,61 @@ import HomePage from './components/HomePage';
 import AboutPage from './components/AboutPage';
 import SettingsPage from './components/SettingsPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import { authService, User } from './services/authService';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentUser, setCurrentUser] = useState<string>('');
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleLogin = async (username: string, password: string) => {
-    // 这里可以添加实际的登录验证逻辑
-    // 目前作为演示，我们简单模拟登录过程
-    return new Promise<void>((resolve, reject) => {
-      setTimeout(() => {
-        // 简单的演示验证：用户名和密码不为空即可登录
-        if (username.trim() && password.trim()) {
-          setCurrentUser(username);
+  // Check if user is already logged in on app start
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      try {
+        if (authService.isAuthenticated()) {
+          const user = await authService.getCurrentUser();
+          setCurrentUser(user);
           setIsLoggedIn(true);
-          resolve();
-        } else {
-          reject(new Error('Invalid credentials'));
         }
-      }, 1000); // 模拟网络请求延迟
-    });
+      } catch (error) {
+        console.error('Failed to restore user session:', error);
+        authService.logout();
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuthStatus();
+  }, []);
+
+  const handleLogin = async (user: User) => {
+    setCurrentUser(user);
+    setIsLoggedIn(true);
   };
 
   const handleLogout = () => {
+    authService.logout();
     setIsLoggedIn(false);
-    setCurrentUser('');
+    setCurrentUser(null);
   };
+
+  // Show loading spinner while checking auth status
+  if (isLoading) {
+    return (
+      <div className="App">
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '100vh',
+          color: '#ffffff',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+        }}>
+          <div>正在加载...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Router>

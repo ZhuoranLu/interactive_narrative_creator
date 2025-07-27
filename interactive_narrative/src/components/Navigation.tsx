@@ -1,9 +1,10 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { User } from '../services/authService';
 import './Navigation.css';
 
 interface NavigationProps {
-  currentUser: string;
+  currentUser: User | null;
   onLogout: () => void;
 }
 
@@ -23,29 +24,50 @@ const Navigation: React.FC<NavigationProps> = ({ currentUser, onLogout }) => {
           </Link>
         </div>
         <nav className="main-navigation">
-          <Link 
-            to="/" 
-            className={`nav-link ${isActive('/') ? 'active' : ''}`}
-          >
-            首页
-          </Link>
-          <Link 
-            to="/about" 
-            className={`nav-link ${isActive('/about') ? 'active' : ''}`}
-          >
-            关于
-          </Link>
-          <Link 
-            to="/settings" 
-            className={`nav-link ${isActive('/settings') ? 'active' : ''}`}
-          >
-            设置
-          </Link>
+          <ul className="nav-list">
+            <li>
+              <Link 
+                to="/" 
+                className={`nav-link ${isActive('/') ? 'active' : ''}`}
+              >
+                首页
+              </Link>
+            </li>
+            <li>
+              <Link 
+                to="/about" 
+                className={`nav-link ${isActive('/about') ? 'active' : ''}`}
+              >
+                关于
+              </Link>
+            </li>
+            <li>
+              <Link 
+                to="/settings" 
+                className={`nav-link ${isActive('/settings') ? 'active' : ''}`}
+              >
+                设置
+              </Link>
+            </li>
+          </ul>
         </nav>
         <div className="user-info">
-          <span className="user-name">欢迎, {currentUser}</span>
-          <button onClick={onLogout} className="logout-button">
-            退出登录
+          {currentUser && (
+            <div className="user-details">
+              <span className="username">
+                {currentUser.full_name || currentUser.username}
+                {currentUser.is_premium && <span className="premium-badge">🌟</span>}
+              </span>
+              <span className="token-balance">
+                {currentUser.token_balance} tokens
+              </span>
+            </div>
+          )}
+          <button 
+            onClick={onLogout}
+            className="logout-button"
+          >
+            登出
           </button>
         </div>
       </div>

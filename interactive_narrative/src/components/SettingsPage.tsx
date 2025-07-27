@@ -1,109 +1,129 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navigation from './Navigation';
+import { User, authService } from '../services/authService';
 import './SettingsPage.css';
 
 interface SettingsPageProps {
-  currentUser: string;
+  currentUser: User | null;
   onLogout: () => void;
 }
 
 const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser, onLogout }) => {
-  const [settings, setSettings] = useState({
-    notifications: true,
-    autoSave: true,
-    theme: 'dark',
-    language: 'zh-CN'
-  });
+  const [tokenBalance, setTokenBalance] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSettingChange = (key: string, value: boolean | string) => {
-    setSettings(prev => ({
-      ...prev,
-      [key]: value
-    }));
-  };
+  // Load token balance on component mount
+  useEffect(() => {
+    const loadTokenBalance = async () => {
+      if (!currentUser) return;
+      
+      try {
+        setIsLoading(true);
+        const response = await authService.getTokenBalance();
+        setTokenBalance(response.token_balance);
+      } catch (err) {
+        console.error('Failed to load token balance:', err);
+        setError('无法加载Token余额');
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const handleSaveSettings = () => {
-    // 这里可以添加保存设置的逻辑
-    alert('设置已保存！');
-  };
+    loadTokenBalance();
+  }, [currentUser]);
+
+  if (!currentUser) {
+    return null;
+  }
 
   return (
     <div className="settings-page">
       <Navigation currentUser={currentUser} onLogout={onLogout} />
-      
       <main className="settings-content">
-        <div className="settings-card">
-          <h2>用户设置</h2>
+        <div className="container">
+          <h1>用户设置</h1>
           
-          <div className="settings-section">
-            <h3>通知设置</h3>
-            <div className="setting-item">
-              <label className="setting-label">
-                <input
-                  type="checkbox"
-                  checked={settings.notifications}
-                  onChange={(e) => handleSettingChange('notifications', e.target.checked)}
-                />
-                <span className="setting-text">启用通知</span>
-              </label>
+          <section className="user-profile-section">
+            <h2>个人资料</h2>
+            <div className="profile-info">
+              <div className="info-row">
+                <label>用户名:</label>
+                <span>{currentUser.username}</span>
+              </div>
+              <div className="info-row">
+                <label>邮箱:</label>
+                <span>{currentUser.email}</span>
+              </div>
+              <div className="info-row">
+                <label>全名:</label>
+                <span>{currentUser.full_name || '未设置'}</span>
+              </div>
+              <div className="info-row">
+                <label>账户状态:</label>
+                <span className={`status ${currentUser.is_active ? 'active' : 'inactive'}`}>
+                  {currentUser.is_active ? '活跃' : '未激活'}
+                </span>
+              </div>
+              <div className="info-row">
+                <label>邮箱验证:</label>
+                <span className={`status ${currentUser.is_verified ? 'verified' : 'unverified'}`}>
+                  {currentUser.is_verified ? '已验证' : '未验证'}
+                </span>
+              </div>
+              <div className="info-row">
+                <label>会员类型:</label>
+                <span className={`membership ${currentUser.is_premium ? 'premium' : 'standard'}`}>
+                  {currentUser.is_premium ? '🌟 Premium' : '🔓 Standard'}
+                </span>
+              </div>
+              <div className="info-row">
+                <label>注册时间:</label>
+                <span>{new Date(currentUser.created_at).toLocaleDateString('zh-CN')}</span>
+              </div>
             </div>
-          </div>
+          </section>
 
-          <div className="settings-section">
-            <h3>编辑器设置</h3>
-            <div className="setting-item">
-              <label className="setting-label">
-                <input
-                  type="checkbox"
-                  checked={settings.autoSave}
-                  onChange={(e) => handleSettingChange('autoSave', e.target.checked)}
-                />
-                <span className="setting-text">自动保存</span>
-              </label>
+          <section className="token-section">
+            <h2>Token管理</h2>
+            <div className="token-info">
+              <div className="token-balance">
+                <h3>当前余额</h3>
+                {isLoading ? (
+                  <div className="loading">加载中...</div>
+                ) : error ? (
+                  <div className="error">{error}</div>
+                ) : (
+                  <div className="balance-display">
+                    {tokenBalance !== null ? tokenBalance : currentUser.token_balance} tokens
+                  </div>
+                )}
+              </div>
+              <div className="token-actions">
+                <button className="btn-primary" disabled>
+                  购买Token (即将推出)
+                </button>
+                <button className="btn-secondary" disabled>
+                  使用记录 (即将推出)
+                </button>
+              </div>
             </div>
-          </div>
+          </section>
 
-          <div className="settings-section">
-            <h3>外观设置</h3>
-            <div className="setting-item">
-              <label className="setting-label">
-                <span className="setting-text">主题</span>
-                <select
-                  value={settings.theme}
-                  onChange={(e) => handleSettingChange('theme', e.target.value)}
-                  className="setting-select"
-                >
-                  <option value="dark">深色</option>
-                  <option value="light">浅色</option>
-                  <option value="auto">自动</option>
-                </select>
-              </label>
+          <section className="account-section">
+            <h2>账户操作</h2>
+            <div className="account-actions">
+              <button className="btn-secondary" disabled>
+                修改密码
+              </button>
+              <button className="btn-secondary" disabled>
+                更新资料
+              </button>
+              <button className="btn-danger" onClick={onLogout}>
+                退出登录
+              </button>
             </div>
-          </div>
-
-          <div className="settings-section">
-            <h3>语言设置</h3>
-            <div className="setting-item">
-              <label className="setting-label">
-                <span className="setting-text">语言</span>
-                <select
-                  value={settings.language}
-                  onChange={(e) => handleSettingChange('language', e.target.value)}
-                  className="setting-select"
-                >
-                  <option value="zh-CN">中文</option>
-                  <option value="en-US">English</option>
-                  <option value="ja-JP">日本語</option>
-                </select>
-              </label>
-            </div>
-          </div>
-
-          <div className="settings-actions">
-            <button onClick={handleSaveSettings} className="save-button">
-              保存设置
-            </button>
-          </div>
+          </section>
         </div>
       </main>
     </div>

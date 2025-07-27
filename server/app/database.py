@@ -2,7 +2,7 @@
 Database configuration and models for Interactive Narrative Creator
 """
 
-from sqlalchemy import create_engine, Column, String, Text, Integer, Boolean, DateTime, ForeignKey, JSON
+from sqlalchemy import create_engine, Column, String, Text, Integer, Boolean, DateTime, ForeignKey, JSON, Float, Index
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship
 from datetime import datetime
@@ -65,24 +65,219 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
+# ====================
+# USER MANAGEMENT MODELS
+# ====================
+
+class User(Base):
+    """User account management"""
+    __tablename__ = "users"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    username = Column(String(50), unique=True, nullable=False, index=True)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    hashed_password = Column(String(255), nullable=False)
+    full_name = Column(String(100))
+    
+    # Account status
+    is_active = Column(Boolean, default=True)
+    is_verified = Column(Boolean, default=False)
+    is_premium = Column(Boolean, default=False)
+    
+    # Token/Credit system
+    token_balance = Column(Integer, default=1000)  # Starting tokens
+    total_tokens_purchased = Column(Integer, default=0)
+    total_tokens_used = Column(Integer, default=0)
+    
+    # Profile information
+    avatar_url = Column(String(255))
+    bio = Column(Text)
+    preferred_language = Column(String(10), default='en')
+    timezone = Column(String(50), default='UTC')
+    
+    # Account timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_login_at = Column(DateTime)
+    email_verified_at = Column(DateTime)
+    
+    # Relationships
+    projects = relationship("NarrativeProject", back_populates="owner", cascade="all, delete-orphan")
+    token_transactions = relationship("TokenTransaction", back_populates="user", cascade="all, delete-orphan")
+    user_sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
+    preferences = relationship("UserPreferences", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    collaborations = relationship("ProjectCollaborator", foreign_keys="ProjectCollaborator.user_id", back_populates="user")
+
+
+class TokenTransaction(Base):
+    """Track token usage and purchases"""
+    __tablename__ = "token_transactions"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    
+    # Transaction details
+    transaction_type = Column(String(20), nullable=False)  # 'purchase', 'usage', 'refund', 'bonus'
+    amount = Column(Integer, nullable=False)  # Positive for credits, negative for usage
+    balance_after = Column(Integer, nullable=False)
+    
+    # Usage context
+    project_id = Column(String, ForeignKey("narrative_projects.id"))
+    operation_type = Column(String(50))  # 'generate_scene', 'generate_dialogue', 'ai_suggestion'
+    operation_details = Column(JSON)  # Store details about what was generated
+    
+    # Payment information (for purchases)
+    payment_method = Column(String(50))  # 'stripe', 'paypal', 'admin_grant'
+    payment_reference = Column(String(255))  # External payment ID
+    
+    # Metadata
+    description = Column(Text)
+    meta_data = Column(JSON)  # Renamed from metadata to avoid SQLAlchemy conflict
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = relationship("User", back_populates="token_transactions")
+    project = relationship("NarrativeProject", foreign_keys=[project_id])
+
+
+class UserSession(Base):
+    """Track user login sessions and JWT tokens"""
+    __tablename__ = "user_sessions"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    
+    # Session details
+    token_hash = Column(String(255), unique=True, nullable=False)  # Hashed JWT token
+    refresh_token_hash = Column(String(255), unique=True)
+    
+    # Session metadata
+    device_info = Column(JSON)  # Browser, OS, device type
+    ip_address = Column(String(45))  # IPv4 or IPv6
+    location = Column(JSON)  # City, country, etc.
+    
+    # Session lifecycle
+    created_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=False)
+    last_activity = Column(DateTime, default=datetime.utcnow)
+    is_active = Column(Boolean, default=True)
+    
+    # Relationships
+    user = relationship("User", back_populates="user_sessions")
+
+
+class UserPreferences(Base):
+    """User application preferences and settings"""
+    __tablename__ = "user_preferences"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, unique=True)
+    
+    # UI Preferences
+    theme = Column(String(20), default='light')  # 'light', 'dark', 'auto'
+    language = Column(String(10), default='en')
+    
+    # Narrative Generation Preferences
+    default_story_style = Column(String(50))
+    preferred_ai_model = Column(String(50))
+    creativity_level = Column(Float, default=0.7)  # 0.0 to 1.0
+    
+    # Notification Preferences
+    email_notifications = Column(Boolean, default=True)
+    project_sharing_notifications = Column(Boolean, default=True)
+    marketing_emails = Column(Boolean, default=False)
+    
+    # Advanced Settings
+    auto_save_interval = Column(Integer, default=30)  # seconds
+    max_concurrent_projects = Column(Integer, default=5)
+    api_rate_limit = Column(Integer, default=100)  # requests per hour
+    
+    # Custom preferences (flexible JSON field)
+    custom_settings = Column(JSON)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    user = relationship("User", back_populates="preferences")
+
+
+class ProjectCollaborator(Base):
+    """Project collaboration management"""
+    __tablename__ = "project_collaborators"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    project_id = Column(String, ForeignKey("narrative_projects.id"), nullable=False)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    
+    # Collaboration details
+    role = Column(String(20), default='viewer')  # 'owner', 'editor', 'commenter', 'viewer'
+    permissions = Column(JSON)  # Detailed permissions
+    
+    # Invitation details
+    invited_by = Column(String, ForeignKey("users.id"))
+    invited_at = Column(DateTime, default=datetime.utcnow)
+    accepted_at = Column(DateTime)
+    is_active = Column(Boolean, default=True)
+    
+    # Activity tracking
+    last_activity = Column(DateTime)
+    contributions_count = Column(Integer, default=0)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    project = relationship("NarrativeProject", back_populates="collaborators")
+    user = relationship("User", foreign_keys=[user_id], back_populates="collaborations")
+    inviter = relationship("User", foreign_keys=[invited_by])
+    
+    # Unique constraint to prevent duplicate collaborations
+    __table_args__ = (
+        Index('ix_project_user_unique', 'project_id', 'user_id', unique=True),
+    )
+
+
+# ====================
+# NARRATIVE MODELS (UPDATED)
+# ====================
+
 class NarrativeProject(Base):
     """Represents a narrative project/story"""
     __tablename__ = "narrative_projects"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    
+    # User ownership
+    owner_id = Column(String, ForeignKey("users.id"), nullable=False)
+    
+    # Project basic info
     title = Column(String, nullable=False)
     description = Column(Text)
     world_setting = Column(Text)
     characters = Column(JSON)  # List of character names
     style = Column(String)
     start_node_id = Column(String, ForeignKey("narrative_nodes.id"))
+    
+    # Project settings
+    is_public = Column(Boolean, default=False)
+    is_collaborative = Column(Boolean, default=False)
+    max_collaborators = Column(Integer, default=5)
+    
+    # Usage tracking
+    total_tokens_used = Column(Integer, default=0)
+    node_count = Column(Integer, default=0)
+    last_accessed = Column(DateTime, default=datetime.utcnow)
+    
+    # Metadata and timestamps
     meta_data = Column(JSON)  # Renamed from metadata to avoid SQLAlchemy conflict
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships - specify foreign_keys to avoid ambiguity
+    owner = relationship("User", back_populates="projects")
     nodes = relationship("NarrativeNode", foreign_keys="NarrativeNode.project_id", back_populates="project", cascade="all, delete-orphan")
     start_node = relationship("NarrativeNode", foreign_keys=[start_node_id], post_update=True)
+    collaborators = relationship("ProjectCollaborator", back_populates="project", cascade="all, delete-orphan")
 
 
 class NarrativeNode(Base):
@@ -95,6 +290,12 @@ class NarrativeNode(Base):
     node_type = Column(String, default="scene")  # "scene" or "event"
     level = Column(Integer, default=0)
     parent_node_id = Column(String, ForeignKey("narrative_nodes.id"))
+    
+    # Generation tracking
+    tokens_used = Column(Integer, default=0)
+    generation_model = Column(String(50))  # Which AI model was used
+    generation_params = Column(JSON)  # Model parameters used
+    
     meta_data = Column(JSON)  # Renamed from metadata to avoid SQLAlchemy conflict
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -118,6 +319,11 @@ class NarrativeEvent(Base):
     description = Column(Text, default="")  # For backward compatibility
     timestamp = Column(Integer, default=0)
     event_type = Column(String, default="dialogue")  # "dialogue" or "narration"
+    
+    # Generation tracking
+    tokens_used = Column(Integer, default=0)
+    generation_model = Column(String(50))
+    
     meta_data = Column(JSON)  # Renamed from metadata to avoid SQLAlchemy conflict
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -134,6 +340,11 @@ class Action(Base):
     event_id = Column(String, ForeignKey("narrative_events.id"))
     description = Column(Text, nullable=False)
     is_key_action = Column(Boolean, default=False)
+    
+    # Generation tracking
+    tokens_used = Column(Integer, default=0)
+    generation_model = Column(String(50))
+    
     meta_data = Column(JSON)  # Renamed from metadata to avoid SQLAlchemy conflict
     created_at = Column(DateTime, default=datetime.utcnow)
 
