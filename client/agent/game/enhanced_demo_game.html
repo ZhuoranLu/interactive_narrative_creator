@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>深夜来电 - 增强版互动视觉小说</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #ff6b9d;
+            --secondary-color: #4ecdc4;
+            --accent-color: #f9ca24;
+            --dark-color: #2c2c54;
+            --light-color: #f8f9fa;
+            --danger-color: #e74c3c;
+            --success-color: #2ecc71;
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+        }
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 动态背景粒子 */
+        .particles-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            animation: float-particle 6s infinite linear;
+        }
+
+        @keyframes float-particle {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100px) rotate(360deg); opacity: 0; }
+        }
+
+        /* 游戏容器 */
+        .game-container {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            z-index: 2;
+        }
+
+        /* 场景背景 */
+        .background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            transition: all 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            z-index: 2;
+        }
+
+        .background::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.3) 100%);
+            z-index: 1;
+        }
+
+        /* 角色立绘 */
+        .character {
+            position: absolute;
+            right: 8%;
+            bottom: 8%;
+            width: 350px;
+            height: 500px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 16px;
+            text-align: center;
+            backdrop-filter: blur(20px);
+            transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            z-index: 5;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        }
+
+        .character.speaking {
+            transform: scale(1.05);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 30px rgba(255, 107, 157, 0.4);
+        }
+
+        .character.hidden {
+            opacity: 0.3;
+            transform: translateX(50px);
+        }
+
+        /* 场景标题 */
+        .scene-title {
+            position: absolute;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-family: 'Cinzel', serif;
+            font-size: 28px;
+            font-weight: 600;
+            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.8);
+            z-index: 10;
+            opacity: 0;
+            animation: fadeInDown 1s ease-out 0.5s forwards;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+
+        /* 对话框系统 */
+        .dialogue-box {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 30%;
+            background: linear-gradient(135deg, rgba(44, 44, 84, 0.95) 0%, rgba(52, 58, 94, 0.95) 100%);
+            color: white;
+            padding: 30px;
+            backdrop-filter: blur(20px);
+            border-top: 3px solid var(--glass-border);
+            box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+            transform: translateY(100%);
+            transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .dialogue-box.visible {
+            transform: translateY(0);
+        }
+
+        .dialogue-box::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color), var(--accent-color));
+            animation: shimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { transform: translateX(-100%); }
+            50% { transform: translateX(100%); }
+        }
+
+        .speaker-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .speaker-name::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 50px;
+            height: 2px;
+            background: var(--primary-color);
+            border-radius: 1px;
+        }
+
+        .dialogue-text {
+            font-size: 18px;
+            line-height: 1.8;
+            margin-bottom: 15px;
+            min-height: 60px;
+            opacity: 0;
+            animation: typeWriter 2s ease-out forwards;
+        }
+
+        @keyframes typeWriter {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .continue-hint {
+            position: absolute;
+            bottom: 15px;
+            right: 30px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        /* 选择系统 */
+        .choices-container {
+            position: absolute;
+            bottom: 35%;
+            right: 5%;
+            width: 450px;
+            display: none;
+            z-index: 15;
+        }
+
+        .choices-container.visible {
+            display: block;
+            animation: slideInRight 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .choice-button {
+            display: block;
+            width: 100%;
+            padding: 18px 25px;
+            margin: 12px 0;
+            background: var(--glass-bg);
+            color: white;
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            backdrop-filter: blur(15px);
+            position: relative;
+            overflow: hidden;
+            text-align: left;
+            line-height: 1.4;
+        }
+
+        .choice-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.6s;
+        }
+
+        .choice-button:hover::before {
+            left: 100%;
+        }
+
+        .choice-button:hover {
+            transform: translateX(-8px) scale(1.02);
+            border-color: var(--primary-color);
+            box-shadow: 0 8px 25px rgba(255, 107, 157, 0.3);
+            background: rgba(255, 107, 157, 0.2);
+        }
+
+        .choice-button.continue {
+            border-color: var(--secondary-color);
+        }
+
+        .choice-button.continue:hover {
+            border-color: var(--secondary-color);
+            box-shadow: 0 8px 25px rgba(78, 205, 196, 0.3);
+            background: rgba(78, 205, 196, 0.2);
+        }
+
+        .choice-button.danger {
+            border-color: var(--danger-color);
+        }
+
+        .choice-button.danger:hover {
+            border-color: var(--danger-color);
+            box-shadow: 0 8px 25px rgba(231, 76, 60, 0.3);
+            background: rgba(231, 76, 60, 0.2);
+        }
+
+        /* 效果系统 */
+        .effect-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        /* 响应反馈 */
+        .response-notification {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px 40px;
+            color: white;
+            font-size: 18px;
+            text-align: center;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+            z-index: 25;
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.8);
+            transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            max-width: 600px;
+            line-height: 1.6;
+        }
+
+        .response-notification.visible {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        /* 控制面板 */
+        .controls {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+        }
+
+        .control-button {
+            padding: 12px 20px;
+            background: var(--glass-bg);
+            color: white;
+            border: 1px solid var(--glass-border);
+            border-radius: 25px;
+            cursor: pointer;
+            backdrop-filter: blur(15px);
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .control-button:hover {
+            background: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 157, 0.3);
+        }
+
+        /* 进度系统 */
+        .progress-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 30;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            transition: width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            animation: progressShimmer 2s ease-in-out infinite;
+        }
+
+        @keyframes progressShimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* 加载状态 */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 20px;
+            z-index: 1000;
+            text-align: center;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 特殊效果 */
+        .screen-flash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.3);
+            z-index: 50;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .screen-flash.active {
+            animation: flash 0.3s ease-out;
+        }
+
+        @keyframes flash {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .character {
+                width: 250px;
+                height: 350px;
+                right: 5%;
+                bottom: 35%;
+            }
+            
+            .choices-container {
+                width: 90%;
+                right: 5%;
+                bottom: 5%;
+            }
+            
+            .dialogue-box {
+                padding: 20px;
+                height: 35%;
+            }
+            
+            .scene-title {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 粒子容器 -->
+    <div class="particles-container" id="particlesContainer"></div>
+    
+    <!-- 游戏主容器 -->
+    <div class="game-container">
+        <!-- 加载状态 -->
+        <div class="loading" id="loading">
+            <div class="loading-spinner"></div>
+            <div>加载游戏数据中...</div>
+        </div>
+        
+        <!-- 场景背景 -->
+        <div class="background" id="background"></div>
+        
+        <!-- 角色立绘 -->
+        <div class="character hidden" id="character">
+            <div>
+                <div style="font-size: 18px; margin-bottom: 10px;">角色立绘占位符</div>
+                <div style="font-size: 14px; opacity: 0.7;">(AI生成后替换)</div>
+            </div>
+        </div>
+        
+        <!-- 场景标题 -->
+        <div class="scene-title" id="sceneTitle"></div>
+        
+        <!-- 对话框 -->
+        <div class="dialogue-box" id="dialogueBox">
+            <div class="speaker-name" id="speakerName"></div>
+            <div class="dialogue-text" id="dialogueText"></div>
+            <div class="continue-hint">点击继续 或 按空格键</div>
+        </div>
+        
+        <!-- 选择容器 -->
+        <div class="choices-container" id="choicesContainer"></div>
+        
+        <!-- 响应通知 -->
+        <div class="response-notification" id="responseNotification"></div>
+        
+        <!-- 特效叠加层 -->
+        <div class="effect-overlay" id="effectOverlay"></div>
+        
+        <!-- 屏幕闪光效果 -->
+        <div class="screen-flash" id="screenFlash"></div>
+        
+        <!-- 控制面板 -->
+        <div class="controls">
+            <button class="control-button" onclick="toggleAuto()" id="autoButton">自动播放</button>
+            <button class="control-button" onclick="saveGame()">保存</button>
+            <button class="control-button" onclick="showSettings()">设置</button>
+        </div>
+        
+        <!-- 进度条 -->
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <script>
+        class EnhancedGameEngine {
+            constructor() {
+                this.gameData = null;
+                this.currentScene = null;
+                this.currentContentIndex = 0;
+                this.autoPlay = false;
+                this.gameState = {
+                    currentSceneId: null,
+                    history: [],
+                    saves: {},
+                    effects: []
+                };
+                
+                this.initParticles();
+                this.loadGameData();
+            }
+
+            // 初始化粒子系统
+            initParticles() {
+                const container = document.getElementById('particlesContainer');
+                setInterval(() => {
+                    if (container.children.length < 15) {
+                        this.createParticle();
+                    }
+                }, 800);
+            }
+
+            createParticle() {
+                const container = document.getElementById('particlesContainer');
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 6 + 's';
+                particle.style.animationDuration = (Math.random() * 4 + 4) + 's';
+                
+                container.appendChild(particle);
+                
+                setTimeout(() => {
+                    if (particle.parentNode) {
+                        particle.parentNode.removeChild(particle);
+                    }
+                }, 8000);
+            }
+
+            async loadGameData() {
+                try {
+                    const response = await fetch('interactive_game_data.json');
+                    this.gameData = await response.json();
+                    this.startGame();
+                } catch (error) {
+                    console.error('加载游戏数据失败:', error);
+                    document.getElementById('loading').innerHTML = 
+                        '<div class="loading-spinner"></div><div>加载失败，请检查游戏数据文件</div>';
+                }
+            }
+
+            startGame() {
+                const loading = document.getElementById('loading');
+                loading.style.opacity = '0';
+                setTimeout(() => {
+                    loading.style.display = 'none';
+                }, 500);
+                
+                const startSceneId = this.gameData.start_scene_id;
+                this.loadScene(startSceneId);
+            }
+
+            loadScene(sceneId) {
+                const scene = this.gameData.game_scenes.find(s => s.scene_id === sceneId);
+                if (!scene) {
+                    console.error('场景未找到:', sceneId);
+                    return;
+                }
+
+                this.currentScene = scene;
+                this.currentContentIndex = 0;
+                this.gameState.currentSceneId = sceneId;
+
+                // 场景转换效果
+                this.triggerSceneTransition();
+
+                // 更新场景标题
+                const title = document.getElementById('sceneTitle');
+                title.style.opacity = '0';
+                setTimeout(() => {
+                    title.textContent = scene.scene_title;
+                    title.style.animation = 'none';
+                    title.offsetHeight; // 强制重绘
+                    title.style.animation = 'fadeInDown 1s ease-out forwards';
+                }, 300);
+
+                // 更新背景
+                this.updateBackground(scene.background_image);
+
+                // 隐藏选择
+                document.getElementById('choicesContainer').classList.remove('visible');
+
+                // 开始播放场景内容
+                setTimeout(() => this.playContent(), 800);
+
+                // 更新进度条
+                this.updateProgress();
+            }
+
+            triggerSceneTransition() {
+                const flash = document.getElementById('screenFlash');
+                flash.classList.add('active');
+                setTimeout(() => flash.classList.remove('active'), 300);
+            }
+
+            updateBackground(imagePath) {
+                const bg = document.getElementById('background');
+                
+                // 根据场景使用不同的主题色彩
+                const themes = [
+                    'linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #2c3e50 100%)', // 酒吧 - 深沉
+                    'linear-gradient(135deg, #8e44ad 0%, #9b59b6 50%, #8e44ad 100%)', // 停车场 - 神秘
+                    'linear-gradient(135deg, #e74c3c 0%, #c0392b 50%, #e74c3c 100%)', // 办公室 - 紧张
+                    'linear-gradient(135deg, #3498db 0%, #2980b9 50%, #3498db 100%)'  // 其他 - 冷静
+                ];
+                
+                const sceneIndex = parseInt(this.currentScene.scene_id.slice(-1)) || 0;
+                const gradient = themes[sceneIndex % themes.length];
+                
+                bg.style.background = gradient;
+                
+                // 添加动态光效
+                setTimeout(() => {
+                    bg.style.background = gradient + ', radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.2) 100%)';
+                }, 500);
+            }
+
+            playContent() {
+                if (this.currentContentIndex >= this.currentScene.content_sequence.length) {
+                    this.showChoices();
+                    return;
+                }
+
+                const content = this.currentScene.content_sequence[this.currentContentIndex];
+                this.displayContent(content);
+                this.currentContentIndex++;
+
+                if (this.autoPlay) {
+                    const delay = content.type === 'narration' ? 4000 : 3000;
+                    setTimeout(() => this.playContent(), delay);
+                }
+            }
+
+            displayContent(content) {
+                const dialogueBox = document.getElementById('dialogueBox');
+                const speakerName = document.getElementById('speakerName');
+                const dialogueText = document.getElementById('dialogueText');
+                const character = document.getElementById('character');
+
+                // 显示对话框
+                dialogueBox.classList.add('visible');
+
+                // 设置说话者
+                speakerName.textContent = content.speaker;
+                
+                // 打字机效果
+                this.typeWriterEffect(dialogueText, content.text);
+
+                // 角色状态更新
+                if (content.type === 'dialogue' && content.speaker !== '旁白') {
+                    character.classList.remove('hidden');
+                    character.classList.add('speaking');
+                    character.innerHTML = `
+                        <div>
+                            <div style="font-size: 18px; margin-bottom: 10px;">角色: ${content.speaker}</div>
+                            <div style="font-size: 14px; opacity: 0.7;">(立绘占位符)</div>
+                        </div>
+                    `;
+                } else {
+                    character.classList.remove('speaking');
+                    character.classList.add('hidden');
+                }
+
+                // 添加点击继续功能
+                if (!this.autoPlay) {
+                    const continueHandler = () => {
+                        this.playContent();
+                        dialogueBox.removeEventListener('click', continueHandler);
+                    };
+                    dialogueBox.addEventListener('click', continueHandler);
+                }
+            }
+
+            typeWriterEffect(element, text) {
+                element.style.opacity = '0';
+                element.textContent = '';
+                
+                setTimeout(() => {
+                    element.style.opacity = '1';
+                    element.textContent = text;
+                }, 200);
+            }
+
+            showChoices() {
+                const choicesContainer = document.getElementById('choicesContainer');
+                choicesContainer.innerHTML = '';
+                
+                this.currentScene.player_choices.forEach((choice, index) => {
+                    const button = document.createElement('button');
+                    
+                    // 选择类型样式
+                    let buttonClass = 'choice-button';
+                    if (choice.choice_type === 'continue') {
+                        buttonClass += ' continue';
+                    }
+                    if (choice.choice_text.includes('危险') || choice.choice_text.includes('质问')) {
+                        buttonClass += ' danger';
+                    }
+                    
+                    button.className = buttonClass;
+                    button.textContent = choice.choice_text;
+                    
+                    // 添加动画延迟
+                    button.style.animationDelay = (index * 0.1) + 's';
+                    
+                    button.onclick = () => this.makeChoice(choice);
+                    choicesContainer.appendChild(button);
+                });
+                
+                setTimeout(() => {
+                    choicesContainer.classList.add('visible');
+                }, 500);
+            }
+
+            makeChoice(choice) {
+                // 选择反馈效果
+                this.triggerChoiceEffect(choice);
+                
+                // 记录选择历史
+                this.gameState.history.push({
+                    sceneId: this.currentScene.scene_id,
+                    choiceId: choice.choice_id,
+                    choiceText: choice.choice_text
+                });
+
+                // 隐藏选择
+                const choicesContainer = document.getElementById('choicesContainer');
+                choicesContainer.classList.remove('visible');
+
+                // 显示即时响应
+                if (choice.immediate_response) {
+                    this.showResponse(choice.immediate_response, choice.effects);
+                    
+                    setTimeout(() => {
+                        if (choice.choice_type === 'continue' && choice.target_scene_id) {
+                            this.loadScene(choice.target_scene_id);
+                        } else {
+                            this.showChoices();
+                        }
+                    }, 3000);
+                } else {
+                    if (choice.choice_type === 'continue' && choice.target_scene_id) {
+                        setTimeout(() => this.loadScene(choice.target_scene_id), 800);
+                    } else {
+                        setTimeout(() => this.showChoices(), 800);
+                    }
+                }
+            }
+
+            triggerChoiceEffect(choice) {
+                // 屏幕效果
+                const flash = document.getElementById('screenFlash');
+                flash.classList.add('active');
+                setTimeout(() => flash.classList.remove('active'), 300);
+
+                // 根据选择类型添加不同效果
+                if (choice.choice_type === 'continue') {
+                    this.createEffect('transition');
+                } else if (choice.choice_text.includes('危险')) {
+                    this.createEffect('danger');
+                } else {
+                    this.createEffect('normal');
+                }
+            }
+
+            createEffect(type) {
+                const overlay = document.getElementById('effectOverlay');
+                
+                switch (type) {
+                    case 'danger':
+                        overlay.style.background = 'radial-gradient(circle, rgba(231, 76, 60, 0.3) 0%, transparent 70%)';
+                        break;
+                    case 'transition':
+                        overlay.style.background = 'radial-gradient(circle, rgba(78, 205, 196, 0.2) 0%, transparent 70%)';
+                        break;
+                    default:
+                        overlay.style.background = 'radial-gradient(circle, rgba(255, 107, 157, 0.2) 0%, transparent 70%)';
+                }
+                
+                overlay.style.opacity = '1';
+                setTimeout(() => {
+                    overlay.style.opacity = '0';
+                    overlay.style.background = '';
+                }, 1000);
+            }
+
+            showResponse(response, effects) {
+                const notification = document.getElementById('responseNotification');
+                notification.textContent = response;
+                notification.classList.add('visible');
+                
+                // 根据效果内容添加特殊样式
+                if (response.includes('危险') || response.includes('威胁')) {
+                    notification.style.borderColor = 'var(--danger-color)';
+                } else if (response.includes('线索') || response.includes('发现')) {
+                    notification.style.borderColor = 'var(--success-color)';
+                } else {
+                    notification.style.borderColor = 'var(--primary-color)';
+                }
+                
+                setTimeout(() => {
+                    notification.classList.remove('visible');
+                }, 2800);
+            }
+
+            updateProgress() {
+                const totalScenes = this.gameData.game_scenes.length;
+                const currentIndex = this.gameData.game_scenes.findIndex(s => s.scene_id === this.currentScene.scene_id);
+                const progress = ((currentIndex + 1) / totalScenes) * 100;
+                
+                document.getElementById('progressBar').style.width = `${progress}%`;
+            }
+        }
+
+        // 控制函数
+        function toggleAuto() {
+            if (window.gameEngine) {
+                window.gameEngine.autoPlay = !window.gameEngine.autoPlay;
+                const button = document.getElementById('autoButton');
+                button.textContent = window.gameEngine.autoPlay ? '停止自动' : '自动播放';
+                button.style.background = window.gameEngine.autoPlay ? 'var(--secondary-color)' : 'var(--glass-bg)';
+                
+                if (window.gameEngine.autoPlay) {
+                    window.gameEngine.playContent();
+                }
+            }
+        }
+
+        function saveGame() {
+            if (window.gameEngine) {
+                const saveData = {
+                    currentSceneId: window.gameEngine.gameState.currentSceneId,
+                    history: window.gameEngine.gameState.history,
+                    timestamp: new Date().toISOString()
+                };
+                localStorage.setItem('enhanced_gameData', JSON.stringify(saveData));
+                
+                // 保存反馈
+                const flash = document.getElementById('screenFlash');
+                flash.style.background = 'rgba(46, 204, 113, 0.3)';
+                flash.classList.add('active');
+                setTimeout(() => {
+                    flash.classList.remove('active');
+                    flash.style.background = 'rgba(255, 255, 255, 0.3)';
+                }, 300);
+            }
+        }
+
+        function showSettings() {
+            alert('🎮 游戏设置\n\n' +
+                  '🎵 音效控制：开发中\n' +
+                  '🎨 画质设置：开发中\n' +
+                  '📱 全屏模式：开发中\n' +
+                  '🌙 夜间模式：开发中\n\n' +
+                  '💡 当前为演示版本');
+        }
+
+        // 启动游戏
+        window.addEventListener('load', () => {
+            window.gameEngine = new EnhancedGameEngine();
+        });
+
+        // 键盘控制
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'Enter') {
+                e.preventDefault();
+                if (window.gameEngine && !window.gameEngine.autoPlay) {
+                    window.gameEngine.playContent();
+                }
+            }
+            
+            if (e.code === 'KeyA') {
+                toggleAuto();
+            }
+            
+            if (e.code === 'KeyS') {
+                saveGame();
+            }
+        });
+    </script>
+</body>
+</html> 

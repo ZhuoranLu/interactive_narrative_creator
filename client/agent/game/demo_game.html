@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>深夜来电 - 互动视觉小说演示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .game-container {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            filter: blur(1px);
+            transition: background-image 1s ease-in-out;
+        }
+
+        .character {
+            position: absolute;
+            right: 10%;
+            bottom: 10%;
+            width: 300px;
+            height: 400px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            text-align: center;
+            transition: opacity 0.5s ease;
+        }
+
+        .scene-title {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            z-index: 10;
+        }
+
+        .dialogue-box {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 25%;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border-top: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .speaker-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #ff6b9d;
+            margin-bottom: 10px;
+        }
+
+        .dialogue-text {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            min-height: 50px;
+        }
+
+        .choices-container {
+            position: absolute;
+            bottom: 30%;
+            right: 30px;
+            width: 400px;
+            display: none;
+        }
+
+        .choice-button {
+            display: block;
+            width: 100%;
+            padding: 12px 20px;
+            margin: 8px 0;
+            background: rgba(255, 107, 157, 0.9);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .choice-button:hover {
+            background: rgba(255, 107, 157, 1);
+            transform: translateX(-5px);
+            box-shadow: 0 5px 15px rgba(255, 107, 157, 0.4);
+        }
+
+        .choice-button.continue {
+            background: rgba(78, 205, 196, 0.9);
+        }
+
+        .choice-button.continue:hover {
+            background: rgba(78, 205, 196, 1);
+            box-shadow: 0 5px 15px rgba(78, 205, 196, 0.4);
+        }
+
+        .controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+
+        .control-button {
+            padding: 8px 15px;
+            margin: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            font-size: 12px;
+        }
+
+        .control-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 18px;
+            z-index: 1000;
+        }
+
+        .progress-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background: #ff6b9d;
+            transition: width 0.3s ease;
+            z-index: 10;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="loading" id="loading">加载游戏数据中...</div>
+        
+        <div class="background" id="background"></div>
+        
+        <div class="character" id="character">
+            角色立绘占位符<br>
+            <small>(AI生成后替换)</small>
+        </div>
+        
+        <div class="scene-title" id="sceneTitle"></div>
+        
+        <div class="dialogue-box" id="dialogueBox" style="display: none;">
+            <div class="speaker-name" id="speakerName"></div>
+            <div class="dialogue-text" id="dialogueText"></div>
+        </div>
+        
+        <div class="choices-container" id="choicesContainer"></div>
+        
+        <div class="controls">
+            <button class="control-button" onclick="toggleAuto()">自动播放</button>
+            <button class="control-button" onclick="saveGame()">保存</button>
+            <button class="control-button" onclick="showSettings()">设置</button>
+        </div>
+        
+        <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+    </div>
+
+    <script>
+        class GameEngine {
+            constructor() {
+                this.gameData = null;
+                this.currentScene = null;
+                this.currentContentIndex = 0;
+                this.autoPlay = false;
+                this.gameState = {
+                    currentSceneId: null,
+                    history: [],
+                    saves: {}
+                };
+                
+                this.loadGameData();
+            }
+
+            async loadGameData() {
+                try {
+                    const response = await fetch('interactive_game_data.json');
+                    this.gameData = await response.json();
+                    this.startGame();
+                } catch (error) {
+                    console.error('加载游戏数据失败:', error);
+                    document.getElementById('loading').textContent = '加载失败，请检查游戏数据文件';
+                }
+            }
+
+            startGame() {
+                document.getElementById('loading').style.display = 'none';
+                const startSceneId = this.gameData.start_scene_id;
+                this.loadScene(startSceneId);
+            }
+
+            loadScene(sceneId) {
+                const scene = this.gameData.game_scenes.find(s => s.scene_id === sceneId);
+                if (!scene) {
+                    console.error('场景未找到:', sceneId);
+                    return;
+                }
+
+                this.currentScene = scene;
+                this.currentContentIndex = 0;
+                this.gameState.currentSceneId = sceneId;
+
+                // 更新场景标题
+                document.getElementById('sceneTitle').textContent = scene.scene_title;
+
+                // 更新背景（使用渐变色代替图片）
+                this.updateBackground(scene.background_image);
+
+                // 开始播放场景内容
+                this.playContent();
+
+                // 更新进度条
+                this.updateProgress();
+            }
+
+            updateBackground(imagePath) {
+                const bg = document.getElementById('background');
+                // 根据场景使用不同的渐变色代替图片
+                const gradients = [
+                    'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)', // 酒吧
+                    'linear-gradient(135deg, #2c3e50 0%, #3b4a5c 50%, #34495e 100%)', // 停车场
+                    'linear-gradient(135deg, #5d4e75 0%, #6c5b7b 50%, #8b7598 100%)', // 办公室
+                    'linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #3f6fb5 100%)'  // 默认
+                ];
+                
+                const sceneIndex = parseInt(this.currentScene.scene_id.slice(-1)) || 0;
+                bg.style.background = gradients[sceneIndex % gradients.length];
+            }
+
+            playContent() {
+                if (this.currentContentIndex >= this.currentScene.content_sequence.length) {
+                    this.showChoices();
+                    return;
+                }
+
+                const content = this.currentScene.content_sequence[this.currentContentIndex];
+                this.displayContent(content);
+                this.currentContentIndex++;
+
+                if (this.autoPlay) {
+                    const delay = content.type === 'narration' ? 3000 : 2000;
+                    setTimeout(() => this.playContent(), delay);
+                }
+            }
+
+            displayContent(content) {
+                const dialogueBox = document.getElementById('dialogueBox');
+                const speakerName = document.getElementById('speakerName');
+                const dialogueText = document.getElementById('dialogueText');
+                const character = document.getElementById('character');
+
+                dialogueBox.style.display = 'block';
+                dialogueBox.classList.add('fade-in');
+
+                speakerName.textContent = content.speaker;
+                dialogueText.textContent = content.text;
+
+                // 如果是角色对话，显示角色
+                if (content.type === 'dialogue' && content.speaker !== '旁白') {
+                    character.style.opacity = '1';
+                    character.innerHTML = `角色: ${content.speaker}<br><small>(立绘占位符)</small>`;
+                } else {
+                    character.style.opacity = '0.3';
+                }
+
+                // 添加点击继续功能
+                if (!this.autoPlay) {
+                    dialogueBox.onclick = () => this.playContent();
+                }
+            }
+
+            showChoices() {
+                const choicesContainer = document.getElementById('choicesContainer');
+                choicesContainer.innerHTML = '';
+                choicesContainer.style.display = 'block';
+
+                this.currentScene.player_choices.forEach(choice => {
+                    const button = document.createElement('button');
+                    button.className = `choice-button ${choice.choice_type}`;
+                    button.textContent = choice.choice_text;
+                    
+                    button.onclick = () => this.makeChoice(choice);
+                    choicesContainer.appendChild(button);
+                });
+            }
+
+            makeChoice(choice) {
+                // 记录选择历史
+                this.gameState.history.push({
+                    sceneId: this.currentScene.scene_id,
+                    choiceId: choice.choice_id,
+                    choiceText: choice.choice_text
+                });
+
+                // 隐藏选择
+                document.getElementById('choicesContainer').style.display = 'none';
+
+                if (choice.choice_type === 'continue' && choice.target_scene_id) {
+                    // 跳转到新场景
+                    setTimeout(() => this.loadScene(choice.target_scene_id), 500);
+                } else {
+                    // 显示即时响应
+                    if (choice.immediate_response) {
+                        this.displayContent({
+                            type: 'narration',
+                            speaker: '系统',
+                            text: choice.immediate_response
+                        });
+                        
+                        setTimeout(() => this.showChoices(), 2000);
+                    } else {
+                        this.showChoices();
+                    }
+                }
+            }
+
+            updateProgress() {
+                const totalScenes = this.gameData.game_scenes.length;
+                const currentIndex = this.gameData.game_scenes.findIndex(s => s.scene_id === this.currentScene.scene_id);
+                const progress = ((currentIndex + 1) / totalScenes) * 100;
+                
+                document.getElementById('progressBar').style.width = `${progress}%`;
+            }
+        }
+
+        // 控制函数
+        function toggleAuto() {
+            if (window.gameEngine) {
+                window.gameEngine.autoPlay = !window.gameEngine.autoPlay;
+                if (window.gameEngine.autoPlay) {
+                    window.gameEngine.playContent();
+                }
+            }
+        }
+
+        function saveGame() {
+            if (window.gameEngine) {
+                const saveData = {
+                    currentSceneId: window.gameEngine.gameState.currentSceneId,
+                    history: window.gameEngine.gameState.history,
+                    timestamp: new Date().toISOString()
+                };
+                localStorage.setItem('gameData', JSON.stringify(saveData));
+                alert('游戏已保存！');
+            }
+        }
+
+        function showSettings() {
+            alert('设置功能：\n- 文字速度调节\n- 音量控制\n- 画质设置\n(演示版本)');
+        }
+
+        // 启动游戏
+        window.addEventListener('load', () => {
+            window.gameEngine = new GameEngine();
+        });
+
+        // 键盘控制
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'Enter') {
+                if (window.gameEngine && !window.gameEngine.autoPlay) {
+                    window.gameEngine.playContent();
+                }
+            }
+        });
+    </script>
+</body>
+</html> 
