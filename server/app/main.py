@@ -1,11 +1,36 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Any, Optional, Dict
+from contextlib import asynccontextmanager
 from app.agent.llm_client import LLMClient
 import logging
+
 logger = logging.getLogger(__name__)
-app = FastAPI()
+
+# Global LLM client instance
+llm_client_instance = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage application lifespan events"""
+    # Startup
+    global llm_client_instance
+    llm_client_instance = LLMClient()
+    logger.info("LLM client initialized on startup")
+    
+    yield
+    
+    # Shutdown
+    logger.info("Application shutting down")
+
+app = FastAPI(lifespan=lifespan)
+
+def get_llm_client() -> LLMClient:
+    """Dependency to get LLM client instance"""
+    if llm_client_instance is None:
+        raise HTTPException(status_code=500, detail="LLM client not initialized")
+    return llm_client_instance
 
 # Add CORS middleware
 app.add_middleware(
@@ -34,18 +59,16 @@ def read_root():
     return {"message": "Interactive Narrative API is running"}
 
 @app.post("/narrative", response_model=NarrativeResponse)
-def handle_narrative_request(payload: NarrativePayload):
+def handle_narrative_request(payload: NarrativePayload, llm_client: LLMClient = Depends(get_llm_client)):
     """
     Unified endpoint for all narrative operations.
     Handles structured payloads and routes to appropriate business logic.
     """
     logger.warning(f"Received payload: {payload}")
     try:
-        # Initialize LLM client (you can move this to a service layer later)
-        llm_client = LLMClient()
+        # LLM client is now injected as a dependency
         logger.info(f"Received payload: {payload}")
 
-        
         # Route based on request_type
         if payload.request_type == "bootstrap_node":
             # Handle story bootstrap
