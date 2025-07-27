@@ -415,8 +415,30 @@ def load_user_project_story_tree(project_id: str, current_user = Depends(get_cur
             # Get events for this node
             events = event_repo.get_events_by_node(node.id)
             
-            # Get actions for this node (from action_bindings)
+            # Get action bindings for this node (outgoing actions)
             outgoing_actions = []
+            for action_binding in node.outgoing_actions:
+                action_data = {
+                    "action": {
+                        "id": action_binding.action.id,
+                        "description": action_binding.action.description,
+                        "is_key_action": action_binding.action.is_key_action,
+                        "metadata": action_binding.action.meta_data or {}
+                    },
+                    "target_node_id": action_binding.target_node_id,
+                    "target_event": None
+                }
+                outgoing_actions.append(action_data)
+                
+                # Build connection data if target node exists
+                if action_binding.target_node_id:
+                    connection = {
+                        "from_node_id": node.id,
+                        "to_node_id": action_binding.target_node_id,
+                        "action_id": action_binding.action.id,
+                        "action_description": action_binding.action.description
+                    }
+                    story_tree["connections"].append(connection)
             
             # Convert node to story tree format
             story_tree["nodes"][node.id] = {

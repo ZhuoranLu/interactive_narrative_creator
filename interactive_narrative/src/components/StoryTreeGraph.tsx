@@ -165,8 +165,20 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({ storyData, onNodeUpdate
         {/* Render nodes */}
         {Object.entries(nodes).map(([nodeId, node]) => {
           const pos = getNodePosition(nodeId);
-          const isRoot = node.type === 'root';
+          const isRoot = node.type === 'root' || node.level === 0;
           const isSelected = selectedNodeId === nodeId;
+          
+          // Determine node color based on type and level
+          let nodeColor = '#FF9800'; // default orange
+          if (isRoot) {
+            nodeColor = '#4CAF50'; // green for root
+          } else if (node.level === 1 || node.type === 'child') {
+            nodeColor = '#2196F3'; // blue for level 1/child
+          } else if (node.level === 2 || node.type === 'grandchild') {
+            nodeColor = '#9C27B0'; // purple for level 2/grandchild
+          } else if (node.level >= 3) {
+            nodeColor = '#FF5722'; // red for deeper levels
+          }
           
           return (
             <g key={nodeId} style={{ cursor: 'pointer' }} onClick={() => handleNodeClick(nodeId)}>
@@ -175,7 +187,7 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({ storyData, onNodeUpdate
                 y={pos.y}
                 width="120"
                 height="60"
-                fill={isRoot ? '#4CAF50' : node.type === 'child' ? '#2196F3' : '#FF9800'}
+                fill={nodeColor}
                 stroke={isSelected ? '#FF5722' : '#333'}
                 strokeWidth={isSelected ? '4' : '2'}
                 rx="5"
@@ -188,7 +200,7 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({ storyData, onNodeUpdate
                 fill="white"
                 fontWeight="bold"
               >
-                {node.type.toUpperCase()}
+                {(node.type || 'NODE').toUpperCase()}
               </text>
               <text
                 x={pos.x + 60}
