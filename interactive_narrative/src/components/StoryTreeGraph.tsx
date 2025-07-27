@@ -113,6 +113,10 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({ storyData, onNodeUpdate
 
     setIsLoading(true);
     try {
+      // Track new items created for proper state update
+      const newEventIds: string[] = [];
+      const newActionIds: string[] = [];
+      
       // Prepare updates
       const updates: any = {};
       
@@ -121,18 +125,63 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({ storyData, onNodeUpdate
         updates.scene = editFormData.scene;
       }
 
-      // Prepare event updates
+      // Handle new events (create them first)
+      const newEvents = editFormData.events.filter(event => !event.id);
+      for (const newEvent of newEvents) {
+        try {
+          const createdEvent = await narrativeService.addDialogueEvent(
+            selectedNodeId,
+            newEvent.speaker,
+            newEvent.content
+          );
+          newEventIds.push(createdEvent.id);
+          // Update the local form data with the new ID
+          const eventIndex = editFormData.events.findIndex(e => e === newEvent);
+          if (eventIndex !== -1) {
+            editFormData.events[eventIndex].id = createdEvent.id;
+          }
+          showSyncStatus(`新对话已添加: ${newEvent.speaker}`, 'success');
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          showSyncStatus(`创建事件失败: ${errorMessage}`, 'error');
+        }
+      }
+
+      // Handle new actions (create them first)
+      const newActions = editFormData.actions.filter(action => action.id.startsWith('action_'));
+      for (const newAction of newActions) {
+        try {
+          const createdAction = await narrativeService.addActionToNode(
+            selectedNodeId,
+            newAction.description,
+            newAction.is_key_action
+          );
+          newActionIds.push(createdAction.id);
+          // Update the local form data with the new ID
+          const actionIndex = editFormData.actions.findIndex(a => a === newAction);
+          if (actionIndex !== -1) {
+            editFormData.actions[actionIndex].id = createdAction.id;
+          }
+          showSyncStatus(`新动作已添加: ${newAction.description}`, 'success');
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          showSyncStatus(`创建动作失败: ${errorMessage}`, 'error');
+        }
+      }
+
+      // Prepare event updates for existing events
       const eventUpdates = [];
       const originalEvents = editingNode.data.events || [];
       
       for (let i = 0; i < editFormData.events.length; i++) {
         const formEvent = editFormData.events[i];
-        const originalEvent = originalEvents[i];
+        const originalEvent = originalEvents.find(e => e.id === formEvent.id);
         
-        if (formEvent.id && originalEvent) {
-          // Check if event changed
+        // Only update existing events that have changed
+        if (formEvent.id && originalEvent && !newEventIds.includes(formEvent.id)) {
           if (formEvent.content !== originalEvent.content || 
-              formEvent.speaker !== originalEvent.speaker) {
+              formEvent.speaker !== originalEvent.speaker ||
+              formEvent.event_type !== originalEvent.event_type) {
             eventUpdates.push({
               id: formEvent.id,
               updates: {
@@ -142,41 +191,29 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({ storyData, onNodeUpdate
               }
             });
           }
-        } else if (!formEvent.id) {
-          // New event - create it
-          const newEvent = await narrativeService.addDialogueEvent(
-            selectedNodeId,
-            formEvent.speaker,
-            formEvent.content
-          );
-          showSyncStatus(`新对话已添加: ${formEvent.speaker}`, 'success');
         }
       }
 
-      // Prepare action updates
+      // Prepare action updates for existing actions
       const actionUpdates = [];
       const originalActions = editingNode.data.outgoing_actions.map(a => a.action);
       
       for (let i = 0; i < editFormData.actions.length; i++) {
         const formAction = editFormData.actions[i];
-        const originalAction = originalActions[i];
+        const originalAction = originalActions.find(a => a.id === formAction.id);
         
-        if (originalAction && formAction.description !== originalAction.description) {
-          actionUpdates.push({
-            id: formAction.id,
-            updates: {
-              description: formAction.description,
-              is_key_action: formAction.is_key_action
-            }
-          });
-        } else if (!originalAction) {
-          // New action - create it
-          const newAction = await narrativeService.addActionToNode(
-            selectedNodeId,
-            formAction.description,
-            formAction.is_key_action
-          );
-          showSyncStatus(`新动作已添加: ${formAction.description}`, 'success');
+        // Only update existing actions that have changed
+        if (originalAction && !newActionIds.includes(formAction.id)) {
+          if (formAction.description !== originalAction.description ||
+              formAction.is_key_action !== originalAction.is_key_action) {
+            actionUpdates.push({
+              id: formAction.id,
+              updates: {
+                description: formAction.description,
+                is_key_action: formAction.is_key_action
+              }
+            });
+          }
         }
       }
 
@@ -202,23 +239,31 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({ storyData, onNodeUpdate
         }
       }
 
-      // Update local state
+      // Update local state with all changes (including new items)
       const updatedNode: StoryNode = {
         ...editingNode,
         data: {
           ...editingNode.data,
           scene: editFormData.scene,
-          events: editFormData.events.filter(e => e.id), // Only keep events with IDs
+          events: editFormData.events.filter(e => e.id), // Only keep events with IDs (all should have IDs now)
           outgoing_actions: editFormData.actions.map((action, index) => ({
-            action,
+            action: {
+              id: action.id,
+              description: action.description,
+              is_key_action: action.is_key_action
+            },
             target_node_id: editingNode.data.outgoing_actions[index]?.target_node_id || null
           }))
         }
       };
 
+      // Update the parent component's state
       if (onNodeUpdate) {
         onNodeUpdate(selectedNodeId, updatedNode);
       }
+
+      // Close the edit modal
+      handleCloseEdit();
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -268,6 +313,26 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({ storyData, onNodeUpdate
       const updatedActions = editFormData.actions.filter((_, index) => index !== actionIndex);
       setEditFormData({ ...editFormData, actions: updatedActions });
       
+      // Also update the parent component immediately if this was a real action
+      if (actionToRemove.id && !actionToRemove.id.startsWith('action_') && editingNode && selectedNodeId) {
+        const updatedNode: StoryNode = {
+          ...editingNode,
+          data: {
+            ...editingNode.data,
+            outgoing_actions: editingNode.data.outgoing_actions.filter(
+              actionBinding => actionBinding.action.id !== actionToRemove.id
+            )
+          }
+        };
+        
+        if (onNodeUpdate) {
+          onNodeUpdate(selectedNodeId, updatedNode);
+        }
+        
+        // Update local editing state as well
+        setEditingNode(updatedNode);
+      }
+      
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       showSyncStatus(`删除动作失败: ${errorMessage}`, 'error');
@@ -315,6 +380,26 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({ storyData, onNodeUpdate
       // Remove from local state
       const updatedEvents = editFormData.events.filter((_, index) => index !== eventIndex);
       setEditFormData({ ...editFormData, events: updatedEvents });
+      
+      // Also update the parent component immediately if this was a real event
+      if (eventToRemove.id && editingNode && selectedNodeId) {
+        const updatedNode: StoryNode = {
+          ...editingNode,
+          data: {
+            ...editingNode.data,
+            events: (editingNode.data.events || []).filter(
+              event => event.id !== eventToRemove.id
+            )
+          }
+        };
+        
+        if (onNodeUpdate) {
+          onNodeUpdate(selectedNodeId, updatedNode);
+        }
+        
+        // Update local editing state as well
+        setEditingNode(updatedNode);
+      }
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';

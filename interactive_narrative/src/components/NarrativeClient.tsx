@@ -158,6 +158,31 @@ const NarrativeClient = () => {
     }
   };
 
+  // Handle real-time node updates from StoryTreeGraph
+  const handleNodeUpdate = (nodeId: string, updatedNode: any) => {
+    if (!storyTree) return;
+    
+    setStoryTree(prevStoryTree => {
+      if (!prevStoryTree) return null;
+      
+      return {
+        ...prevStoryTree,
+        nodes: {
+          ...prevStoryTree.nodes,
+          [nodeId]: updatedNode
+        }
+      };
+    });
+    
+    console.log(`Node ${nodeId} updated in real-time`);
+  };
+
+  // Handle API errors from StoryTreeGraph
+  const handleApiError = (errorMessage: string) => {
+    setError(errorMessage);
+    console.error('StoryTreeGraph API Error:', errorMessage);
+  };
+
   // Example usage functions
   const handleBootstrapStory = async (idea: string) => {
     const payload: NarrativePayload = {
@@ -263,7 +288,11 @@ const NarrativeClient = () => {
       {storyTree && (
         <div style={{ marginBottom: '30px' }}>
           <h3>Story Tree Visualization</h3>
-          <StoryTreeGraph storyData={storyTree} />
+          <StoryTreeGraph 
+            storyData={storyTree} 
+            onNodeUpdate={handleNodeUpdate}
+            onApiError={handleApiError}
+          />
         </div>
       )}
 
