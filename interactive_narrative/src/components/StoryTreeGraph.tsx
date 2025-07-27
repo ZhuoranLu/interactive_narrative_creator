@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { narrativeService } from '../services/narrativeService';
 
 interface StoryNode {
   id: string;
@@ -7,6 +8,12 @@ interface StoryNode {
   parent_node_id?: string;
   data: {
     scene: string;
+    events?: Array<{
+      id?: string;
+      speaker: string;
+      content: string;
+      event_type: string;
+    }>;
     outgoing_actions: Array<{
       action: {
         id: string;
@@ -32,21 +39,33 @@ interface StoryTree {
 interface StoryTreeGraphProps {
   storyData: StoryTree;
   onNodeUpdate?: (nodeId: string, updatedNode: StoryNode) => void;
+  onApiError?: (error: string) => void;
 }
 
-const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({ storyData, onNodeUpdate }) => {
+const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({ storyData, onNodeUpdate, onApiError }) => {
   const { nodes, connections } = storyData;
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [editingNode, setEditingNode] = useState<StoryNode | null>(null);
   const [editFormData, setEditFormData] = useState<{
     scene: string;
+    events: Array<{
+      id?: string;
+      speaker: string;
+      content: string;
+      event_type: string;
+    }>;
     actions: Array<{
       id: string;
       description: string;
       is_key_action: boolean;
     }>;
-  }>({ scene: '', actions: [] });
-  
+  }>({ scene: '', events: [], actions: [] });
+  const [isLoading, setIsLoading] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<{
+    message: string;
+    type: 'success' | 'error' | 'info';
+  } | null>(null);
+
   // Calculate node positions
   const getNodePosition = (nodeId: string) => {
     const node = nodes[nodeId];
@@ -66,12 +85,18 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({ storyData, onNodeUpdate
     return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
   };
 
+  const showSyncStatus = (message: string, type: 'success' | 'error' | 'info') => {
+    setSyncStatus({ message, type });
+    setTimeout(() => setSyncStatus(null), 3000);
+  };
+
   const handleNodeClick = (nodeId: string) => {
     const node = nodes[nodeId];
     setSelectedNodeId(nodeId);
     setEditingNode(node);
     setEditFormData({
       scene: node.data.scene,
+      events: node.data.events || [],
       actions: node.data.outgoing_actions.map(a => a.action)
     });
   };
@@ -79,29 +104,131 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({ storyData, onNodeUpdate
   const handleCloseEdit = () => {
     setSelectedNodeId(null);
     setEditingNode(null);
-    setEditFormData({ scene: '', actions: [] });
+    setEditFormData({ scene: '', events: [], actions: [] });
+    setSyncStatus(null);
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingNode || !selectedNodeId) return;
 
-    const updatedNode: StoryNode = {
-      ...editingNode,
-      data: {
-        ...editingNode.data,
-        scene: editFormData.scene,
-        outgoing_actions: editFormData.actions.map((action, index) => ({
-          action,
-          target_node_id: editingNode.data.outgoing_actions[index]?.target_node_id || null
-        }))
+    setIsLoading(true);
+    try {
+      // Prepare updates
+      const updates: any = {};
+      
+      // Check if scene changed
+      if (editFormData.scene !== editingNode.data.scene) {
+        updates.scene = editFormData.scene;
       }
-    };
 
-    if (onNodeUpdate) {
-      onNodeUpdate(selectedNodeId, updatedNode);
+      // Prepare event updates
+      const eventUpdates = [];
+      const originalEvents = editingNode.data.events || [];
+      
+      for (let i = 0; i < editFormData.events.length; i++) {
+        const formEvent = editFormData.events[i];
+        const originalEvent = originalEvents[i];
+        
+        if (formEvent.id && originalEvent) {
+          // Check if event changed
+          if (formEvent.content !== originalEvent.content || 
+              formEvent.speaker !== originalEvent.speaker) {
+            eventUpdates.push({
+              id: formEvent.id,
+              updates: {
+                content: formEvent.content,
+                speaker: formEvent.speaker,
+                event_type: formEvent.event_type
+              }
+            });
+          }
+        } else if (!formEvent.id) {
+          // New event - create it
+          const newEvent = await narrativeService.addDialogueEvent(
+            selectedNodeId,
+            formEvent.speaker,
+            formEvent.content
+          );
+          showSyncStatus(`新对话已添加: ${formEvent.speaker}`, 'success');
+        }
+      }
+
+      // Prepare action updates
+      const actionUpdates = [];
+      const originalActions = editingNode.data.outgoing_actions.map(a => a.action);
+      
+      for (let i = 0; i < editFormData.actions.length; i++) {
+        const formAction = editFormData.actions[i];
+        const originalAction = originalActions[i];
+        
+        if (originalAction && formAction.description !== originalAction.description) {
+          actionUpdates.push({
+            id: formAction.id,
+            updates: {
+              description: formAction.description,
+              is_key_action: formAction.is_key_action
+            }
+          });
+        } else if (!originalAction) {
+          // New action - create it
+          const newAction = await narrativeService.addActionToNode(
+            selectedNodeId,
+            formAction.description,
+            formAction.is_key_action
+          );
+          showSyncStatus(`新动作已添加: ${formAction.description}`, 'success');
+        }
+      }
+
+      // Add to updates object
+      if (eventUpdates.length > 0) {
+        updates.events = eventUpdates;
+      }
+      if (actionUpdates.length > 0) {
+        updates.actions = actionUpdates;
+      }
+
+      // Perform batch update if there are any updates
+      if (Object.keys(updates).length > 0) {
+        const result = await narrativeService.batchUpdateNode(selectedNodeId, updates);
+        
+        const successCount = result.results.filter(r => r.success).length;
+        const totalCount = result.results.length;
+        
+        if (successCount === totalCount) {
+          showSyncStatus(`✅ 所有更改已同步到数据库 (${successCount}/${totalCount})`, 'success');
+        } else {
+          showSyncStatus(`⚠️ 部分更改同步成功 (${successCount}/${totalCount})`, 'error');
+        }
+      }
+
+      // Update local state
+      const updatedNode: StoryNode = {
+        ...editingNode,
+        data: {
+          ...editingNode.data,
+          scene: editFormData.scene,
+          events: editFormData.events.filter(e => e.id), // Only keep events with IDs
+          outgoing_actions: editFormData.actions.map((action, index) => ({
+            action,
+            target_node_id: editingNode.data.outgoing_actions[index]?.target_node_id || null
+          }))
+        }
+      };
+
+      if (onNodeUpdate) {
+        onNodeUpdate(selectedNodeId, updatedNode);
+      }
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      showSyncStatus(`❌ 同步失败: ${errorMessage}`, 'error');
+      if (onApiError) {
+        onApiError(errorMessage);
+      }
+    } finally {
+      setIsLoading(false);
     }
-
-    handleCloseEdit();
   };
 
   const updateAction = (actionIndex: number, field: string, value: any) => {
@@ -125,9 +252,79 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({ storyData, onNodeUpdate
     });
   };
 
-  const removeAction = (actionIndex: number) => {
-    const updatedActions = editFormData.actions.filter((_, index) => index !== actionIndex);
-    setEditFormData({ ...editFormData, actions: updatedActions });
+  const removeAction = async (actionIndex: number) => {
+    const actionToRemove = editFormData.actions[actionIndex];
+    
+    try {
+      setIsLoading(true);
+      
+      // If this is an existing action (has a proper ID), delete it from the database
+      if (actionToRemove.id && !actionToRemove.id.startsWith('action_')) {
+        await narrativeService.deleteAction(actionToRemove.id);
+        showSyncStatus(`动作已删除: ${actionToRemove.description}`, 'success');
+      }
+      
+      // Remove from local state
+      const updatedActions = editFormData.actions.filter((_, index) => index !== actionIndex);
+      setEditFormData({ ...editFormData, actions: updatedActions });
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      showSyncStatus(`删除动作失败: ${errorMessage}`, 'error');
+      if (onApiError) {
+        onApiError(errorMessage);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const addEvent = () => {
+    const newEvent = {
+      speaker: '',
+      content: '',
+      event_type: 'dialogue'
+    };
+    setEditFormData({
+      ...editFormData,
+      events: [...editFormData.events, newEvent]
+    });
+  };
+
+  const updateEvent = (eventIndex: number, field: string, value: any) => {
+    const updatedEvents = [...editFormData.events];
+    updatedEvents[eventIndex] = {
+      ...updatedEvents[eventIndex],
+      [field]: value
+    };
+    setEditFormData({ ...editFormData, events: updatedEvents });
+  };
+
+  const removeEvent = async (eventIndex: number) => {
+    const eventToRemove = editFormData.events[eventIndex];
+    
+    try {
+      setIsLoading(true);
+      
+      // If this is an existing event (has an ID), delete it from the database
+      if (eventToRemove.id) {
+        await narrativeService.deleteEvent(eventToRemove.id);
+        showSyncStatus(`事件已删除: ${eventToRemove.content}`, 'success');
+      }
+      
+      // Remove from local state
+      const updatedEvents = editFormData.events.filter((_, index) => index !== eventIndex);
+      setEditFormData({ ...editFormData, events: updatedEvents });
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      showSyncStatus(`删除事件失败: ${errorMessage}`, 'error');
+      if (onApiError) {
+        onApiError(errorMessage);
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -218,195 +415,296 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({ storyData, onNodeUpdate
                 fontSize="9"
                 fill="white"
               >
-                {truncateText(node.data.scene, 20)}
+                {truncateText(node.data.scene, 15)}
               </text>
             </g>
           );
         })}
         
-        {/* Arrow marker definition */}
+        {/* Arrow marker for connections */}
         <defs>
           <marker
             id="arrowhead"
             markerWidth="10"
             markerHeight="7"
-            refX="9"
+            refX="10"
             refY="3.5"
             orient="auto"
           >
-            <polygon
-              points="0 0, 10 3.5, 0 7"
-              fill="#666"
-            />
+            <polygon points="0 0, 10 3.5, 0 7" fill="#666" />
           </marker>
         </defs>
       </svg>
 
-      {/* Floating Edit Window */}
+      {/* Edit Modal */}
       {editingNode && (
         <div
           style={{
             position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            background: 'white',
-            border: '2px solid #333',
-            borderRadius: '8px',
-            padding: '20px',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+            top: '0',
+            left: '0',
+            width: '100%',
+            height: '100%',
+            background: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
             zIndex: 1000,
-            minWidth: '400px',
-            maxWidth: '600px',
-            maxHeight: '80vh',
-            overflow: 'auto'
           }}
+          onClick={handleCloseEdit}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-            <h3 style={{ margin: 0, color: '#333' }}>Edit Node: {editingNode.id}</h3>
-            <button
-              onClick={handleCloseEdit}
-              style={{
-                background: '#f44336',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                padding: '5px 10px',
-                cursor: 'pointer'
-              }}
-            >
-              ✕
-            </button>
-          </div>
+          <div
+            style={{
+              background: 'white',
+              border: '1px solid #ccc',
+              borderRadius: '8px',
+              padding: '20px',
+              width: '600px',
+              maxHeight: '80vh',
+              overflow: 'auto',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ marginTop: '0', marginBottom: '20px', color: '#333' }}>
+              编辑节点 - {editingNode.id}
+              {isLoading && <span style={{ marginLeft: '10px', color: '#666' }}>同步中...</span>}
+            </h3>
 
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-              Scene Description:
-            </label>
-            <textarea
-              value={editFormData.scene}
-              onChange={(e) => setEditFormData({ ...editFormData, scene: e.target.value })}
-              style={{
-                width: '100%',
-                minHeight: '80px',
-                padding: '8px',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                fontSize: '14px',
-                fontFamily: 'inherit'
-              }}
-              placeholder="Enter scene description..."
-            />
-          </div>
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Scene:</label>
+              <textarea
+                value={editFormData.scene}
+                onChange={(e) => setEditFormData({ ...editFormData, scene: e.target.value })}
+                style={{
+                  width: '100%',
+                  height: '100px',
+                  padding: '8px',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  resize: 'vertical',
+                }}
+                placeholder="Scene description..."
+              />
+            </div>
 
-          <div style={{ marginBottom: '15px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <label style={{ fontWeight: 'bold' }}>Actions:</label>
+            <div style={{ marginBottom: '15px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <label style={{ fontWeight: 'bold' }}>Events:</label>
+                <button
+                  onClick={addEvent}
+                  disabled={isLoading}
+                  style={{
+                    background: '#4CAF50',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '5px 10px',
+                    cursor: isLoading ? 'not-allowed' : 'pointer',
+                    fontSize: '12px',
+                    opacity: isLoading ? 0.6 : 1
+                  }}
+                >
+                  + Add Event
+                </button>
+              </div>
+
+              {editFormData.events.map((event, index) => (
+                <div key={event.id || index} style={{ marginBottom: '10px', padding: '10px', border: '1px solid #eee', borderRadius: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                    <input
+                      type="text"
+                      value={event.speaker}
+                      onChange={(e) => updateEvent(index, 'speaker', e.target.value)}
+                      placeholder="Speaker..."
+                      disabled={isLoading}
+                      style={{
+                        flex: 1,
+                        padding: '6px',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px',
+                        marginRight: '10px',
+                        opacity: isLoading ? 0.6 : 1
+                      }}
+                    />
+                    <input
+                      type="text"
+                      value={event.content}
+                      onChange={(e) => updateEvent(index, 'content', e.target.value)}
+                      placeholder="Content..."
+                      disabled={isLoading}
+                      style={{
+                        flex: 1,
+                        padding: '6px',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px',
+                        marginRight: '10px',
+                        opacity: isLoading ? 0.6 : 1
+                      }}
+                    />
+                    <select
+                      value={event.event_type}
+                      onChange={(e) => updateEvent(index, 'event_type', e.target.value)}
+                      disabled={isLoading}
+                      style={{
+                        padding: '6px',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px',
+                        marginRight: '10px',
+                        opacity: isLoading ? 0.6 : 1
+                      }}
+                    >
+                      <option value="dialogue">Dialogue</option>
+                      <option value="action">Action</option>
+                      <option value="thought">Thought</option>
+                      <option value="description">Description</option>
+                    </select>
+                    <button
+                      onClick={() => removeEvent(index)}
+                      disabled={isLoading}
+                      style={{
+                        background: '#f44336',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        padding: '4px 8px',
+                        cursor: isLoading ? 'not-allowed' : 'pointer',
+                        fontSize: '12px',
+                        opacity: isLoading ? 0.6 : 1
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <label style={{ fontWeight: 'bold' }}>Actions:</label>
+                <button
+                  onClick={addAction}
+                  disabled={isLoading}
+                  style={{
+                    background: '#2196F3',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '5px 10px',
+                    cursor: isLoading ? 'not-allowed' : 'pointer',
+                    fontSize: '12px',
+                    opacity: isLoading ? 0.6 : 1
+                  }}
+                >
+                  + Add Action
+                </button>
+              </div>
+
+              {editFormData.actions.map((action, index) => (
+                <div key={action.id} style={{ marginBottom: '10px', padding: '10px', border: '1px solid #eee', borderRadius: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <input
+                      type="text"
+                      value={action.description}
+                      onChange={(e) => updateAction(index, 'description', e.target.value)}
+                      placeholder="Action description..."
+                      disabled={isLoading}
+                      style={{
+                        flex: 1,
+                        padding: '6px',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px',
+                        marginRight: '10px',
+                        opacity: isLoading ? 0.6 : 1
+                      }}
+                    />
+                    <label style={{ marginRight: '10px', fontSize: '12px' }}>
+                      <input
+                        type="checkbox"
+                        checked={action.is_key_action}
+                        onChange={(e) => updateAction(index, 'is_key_action', e.target.checked)}
+                        disabled={isLoading}
+                        style={{ marginRight: '5px' }}
+                      />
+                      Key Action
+                    </label>
+                    <button
+                      onClick={() => removeAction(index)}
+                      disabled={isLoading}
+                      style={{
+                        background: '#f44336',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        padding: '4px 8px',
+                        cursor: isLoading ? 'not-allowed' : 'pointer',
+                        fontSize: '12px',
+                        opacity: isLoading ? 0.6 : 1
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
               <button
-                onClick={addAction}
+                onClick={handleCloseEdit}
+                disabled={isLoading}
+                style={{
+                  background: '#ccc',
+                  color: '#333',
+                  border: 'none',
+                  borderRadius: '4px',
+                  padding: '10px 20px',
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                  opacity: isLoading ? 0.6 : 1
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                disabled={isLoading}
                 style={{
                   background: '#4CAF50',
                   color: 'white',
                   border: 'none',
                   borderRadius: '4px',
-                  padding: '5px 10px',
-                  cursor: 'pointer',
-                  fontSize: '12px'
+                  padding: '10px 20px',
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                  opacity: isLoading ? 0.6 : 1
                 }}
               >
-                + Add Action
+                {isLoading ? 'Saving & Syncing...' : 'Save & Sync to Database'}
               </button>
             </div>
-
-            {editFormData.actions.map((action, index) => (
-              <div key={action.id} style={{ marginBottom: '10px', padding: '10px', border: '1px solid #eee', borderRadius: '4px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                  <input
-                    type="text"
-                    value={action.description}
-                    onChange={(e) => updateAction(index, 'description', e.target.value)}
-                    placeholder="Action description..."
-                    style={{
-                      flex: 1,
-                      padding: '6px',
-                      border: '1px solid #ccc',
-                      borderRadius: '4px',
-                      marginRight: '10px'
-                    }}
-                  />
-                  <button
-                    onClick={() => removeAction(index)}
-                    style={{
-                      background: '#f44336',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '4px',
-                      padding: '4px 8px',
-                      cursor: 'pointer',
-                      fontSize: '12px'
-                    }}
-                  >
-                    Remove
-                  </button>
-                </div>
-                <label style={{ display: 'flex', alignItems: 'center', fontSize: '14px' }}>
-                  <input
-                    type="checkbox"
-                    checked={action.is_key_action}
-                    onChange={(e) => updateAction(index, 'is_key_action', e.target.checked)}
-                    style={{ marginRight: '6px' }}
-                  />
-                  Key Action
-                </label>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-            <button
-              onClick={handleCloseEdit}
-              style={{
-                background: '#666',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                padding: '8px 16px',
-                cursor: 'pointer'
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSaveEdit}
-              style={{
-                background: '#4CAF50',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                padding: '8px 16px',
-                cursor: 'pointer'
-              }}
-            >
-              Save Changes
-            </button>
           </div>
         </div>
       )}
 
-      {/* Overlay */}
-      {editingNode && (
+      {/* Sync Status Message */}
+      {syncStatus && (
         <div
           style={{
             position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 999
+            top: '20px',
+            right: '20px',
+            background: syncStatus.type === 'success' ? '#4CAF50' : syncStatus.type === 'error' ? '#F44336' : '#2196F3',
+            color: 'white',
+            padding: '10px 20px',
+            borderRadius: '5px',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
+            zIndex: 1001,
+            fontSize: '14px',
+            fontWeight: 'bold'
           }}
-          onClick={handleCloseEdit}
-        />
+        >
+          {syncStatus.message}
+        </div>
       )}
     </div>
   );

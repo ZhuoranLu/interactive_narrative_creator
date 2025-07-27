@@ -3,15 +3,19 @@ narrative_editor.py
 
 这个模块提供了一个 `NarrativeEditor` 类，用于处理对 `Node` 对象的所有用户驱动的修改。
 这包括重新生成部分内容、编辑文本、添加/删除/修改动作和事件，以及用户自定义节点创建和连接。
+
+现在支持数据库自动同步功能！
 """
 
 import uuid
+import logging
 from typing import Dict, List, Optional, Tuple, Any
 
 # 兼容包内导入和直接运行
 try:
     from .narrative_generator import NarrativeGenerator
     from ..utils.narrative_graph import Node, Action, Event, ActionBinding, NodeType, NarrativeGraph
+    from ..utils.api_client import api_client, APIResponse
 except (ImportError, SystemError):
     import os, sys
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -19,16 +23,83 @@ except (ImportError, SystemError):
     sys.path.insert(0, os.path.dirname(current_dir))
     from narrative_generator import NarrativeGenerator # type: ignore
     from client.utils.narrative_graph import Node, Action, Event, ActionBinding, NodeType, NarrativeGraph # type: ignore
+    from client.utils.api_client import api_client, APIResponse # type: ignore
+
+# Setup logging
+logger = logging.getLogger(__name__)
 
 
 class NarrativeEditor:
-    """处理对Node对象的所有用户驱动的修改，包括自定义节点创建和连接"""
+    """处理对Node对象的所有用户驱动的修改，包括自定义节点创建和连接
+    
+    现在支持数据库自动同步功能！
+    """
 
-    def __init__(self, generator: NarrativeGenerator, narrative_graph: Optional[NarrativeGraph] = None):
+    def __init__(self, generator: NarrativeGenerator, narrative_graph: Optional[NarrativeGraph] = None, 
+                 auth_token: str = None, auto_sync: bool = True):
         self.generator = generator
         self.narrative_graph = narrative_graph or NarrativeGraph("User Story")
+        
+        # 数据库同步相关
+        self.auto_sync = auto_sync
+        self.sync_enabled = True
+        
+        if auth_token:
+            api_client.set_auth_token(auth_token)
+    
+    # ============== 数据库同步管理 ==============
+    
+    def set_auth_token(self, token: str):
+        """设置认证令牌用于数据库操作"""
+        api_client.set_auth_token(token)
+        logger.info("Authentication token updated for database sync")
+    
+    def enable_sync(self):
+        """启用自动数据库同步"""
+        self.sync_enabled = True
+        logger.info("Database synchronization enabled")
+    
+    def disable_sync(self):
+        """禁用自动数据库同步"""
+        self.sync_enabled = False
+        logger.info("Database synchronization disabled")
+    
+    def _sync_to_database(self, operation: str, **kwargs) -> APIResponse:
+        """内部方法：同步更改到数据库"""
+        if not self.sync_enabled or not self.auto_sync:
+            return APIResponse(success=True, data="Sync disabled")
+        
+        try:
+            logger.info(f"Syncing {operation} to database: {kwargs}")
+            
+            if operation == "update_node":
+                return api_client.update_node(**kwargs)
+            elif operation == "create_event":
+                return api_client.create_event(**kwargs)
+            elif operation == "update_event":
+                return api_client.update_event(**kwargs)
+            elif operation == "delete_event":
+                return api_client.delete_event(**kwargs)
+            elif operation == "create_action":
+                return api_client.create_action(**kwargs)
+            elif operation == "update_action":
+                return api_client.update_action(**kwargs)
+            elif operation == "delete_action":
+                return api_client.delete_action(**kwargs)
+            elif operation == "create_action_binding":
+                return api_client.create_action_binding(**kwargs)
+            elif operation == "update_action_binding":
+                return api_client.update_action_binding(**kwargs)
+            elif operation == "delete_action_binding":
+                return api_client.delete_action_binding(**kwargs)
+            else:
+                return APIResponse(success=False, error=f"Unknown operation: {operation}")
+                
+        except Exception as e:
+            logger.error(f"Database sync failed for {operation}: {str(e)}")
+            return APIResponse(success=False, error=str(e))
 
-    # ============== 原有编辑功能 ==============
+    # ============== 原有编辑功能（现在支持数据库同步）==============
     
     # Feature 1: Regenerate parts
     def regenerate_part(self, node: Node, part_to_regenerate: str, context: str = "") -> Node:
@@ -37,13 +108,35 @@ class NarrativeEditor:
         """
         print(f"🔄 正在重新生成 '{part_to_regenerate}'...")
         # 假设generator有一个regenerate_part方法
-        return self.generator.regenerate_part(node, part_to_regenerate, context, node.metadata.get("world_state", {}))
+        node = self.generator.regenerate_part(node, part_to_regenerate, context, node.metadata.get("world_state", {}))
+        
+        # 同步到数据库
+        if self.sync_enabled:
+            if part_to_regenerate == "scene":
+                response = self._sync_to_database("update_node", node_id=node.id, scene=node.scene)
+                if not response.success:
+                    logger.error(f"Failed to sync scene regeneration: {response.error}")
+                    print(f"⚠️ 警告: 场景重新生成未能同步到数据库: {response.error}")
+                else:
+                    print("✅ 场景重新生成已同步到数据库。")
+        
+        return node
 
     # Feature 2: Edit scene
     def edit_scene(self, node: Node, new_scene_text: str) -> Node:
         """直接编辑场景文本"""
         node.scene = new_scene_text
         print("✅ 场景已更新。")
+        
+        # 同步到数据库
+        if self.sync_enabled:
+            response = self._sync_to_database("update_node", node_id=node.id, scene=new_scene_text)
+            if not response.success:
+                logger.error(f"Failed to sync scene update: {response.error}")
+                print(f"⚠️ 警告: 场景更新未能同步到数据库: {response.error}")
+            else:
+                print("✅ 场景更新已同步到数据库。")
+        
         return node
 
     # Feature 3: Add a new action
@@ -78,6 +171,40 @@ class NarrativeEditor:
         binding = ActionBinding(action=new_action)
         node.outgoing_actions.append(binding)
         print(f"✅ 新动作已添加: '{description}'")
+        
+        # 同步到数据库
+        if self.sync_enabled:
+            # 首先创建动作
+            action_response = self._sync_to_database(
+                "create_action",
+                description=new_action.description,
+                is_key_action=new_action.is_key_action,
+                metadata=new_action.metadata
+            )
+            
+            if action_response.success:
+                # 更新动作ID
+                if action_response.data and 'id' in action_response.data:
+                    new_action.id = action_response.data['id']
+                
+                # 然后创建动作绑定
+                binding_response = self._sync_to_database(
+                    "create_action_binding",
+                    action_id=new_action.id,
+                    source_node_id=node.id,
+                    target_node_id=getattr(binding.target_node, 'id', None) if binding.target_node else None,
+                    target_event_id=getattr(binding.target_event, 'id', None) if binding.target_event else None
+                )
+                
+                if binding_response.success:
+                    print("✅ 新动作已同步到数据库。")
+                else:
+                    logger.error(f"Failed to sync action binding: {binding_response.error}")
+                    print(f"⚠️ 警告: 动作绑定未能同步到数据库: {binding_response.error}")
+            else:
+                logger.error(f"Failed to sync action creation: {action_response.error}")
+                print(f"⚠️ 警告: 动作创建未能同步到数据库: {action_response.error}")
+        
         return node
 
     # Feature 4: Edit an action's text
@@ -87,6 +214,20 @@ class NarrativeEditor:
             if binding.action.id == action_id:
                 binding.action.description = new_description
                 print(f"✅ 动作 '{action_id}' 的描述已更新。")
+                
+                # 同步到数据库
+                if self.sync_enabled:
+                    response = self._sync_to_database(
+                        "update_action",
+                        action_id=action_id,
+                        description=new_description
+                    )
+                    if not response.success:
+                        logger.error(f"Failed to sync action description update: {response.error}")
+                        print(f"⚠️ 警告: 动作描述更新未能同步到数据库: {response.error}")
+                    else:
+                        print("✅ 动作描述更新已同步到数据库。")
+                
                 return node
         print(f"❌ 错误: 未找到ID为 '{action_id}' 的动作。")
         return node
@@ -103,6 +244,15 @@ class NarrativeEditor:
         if action_to_delete:
             node.outgoing_actions.remove(action_to_delete)
             print(f"✅ 动作 '{action_id}' 已删除。")
+            
+            # 同步到数据库
+            if self.sync_enabled:
+                response = self._sync_to_database("delete_action", action_id=action_id)
+                if not response.success:
+                    logger.error(f"Failed to sync action deletion: {response.error}")
+                    print(f"⚠️ 警告: 动作删除未能同步到数据库: {response.error}")
+                else:
+                    print("✅ 动作删除已同步到数据库。")
         else:
             print(f"❌ 错误: 未找到ID为 '{action_id}' 的动作。")
         return node
@@ -118,15 +268,125 @@ class NarrativeEditor:
         )
         node.add_event(new_event)
         print(f"✅ 新对话已添加: {speaker}: {content}")
+        
+        # 同步到数据库
+        if self.sync_enabled:
+            response = self._sync_to_database(
+                "create_event",
+                node_id=node.id,
+                content=new_event.content,
+                speaker=new_event.speaker,
+                description=new_event.description,
+                timestamp=new_event.timestamp,
+                event_type=new_event.event_type,
+                metadata=new_event.metadata
+            )
+            
+            if response.success:
+                # 更新事件ID
+                if response.data and 'id' in response.data:
+                    new_event.id = response.data['id']
+                print("✅ 新对话已同步到数据库。")
+            else:
+                logger.error(f"Failed to sync event creation: {response.error}")
+                print(f"⚠️ 警告: 事件创建未能同步到数据库: {response.error}")
+        
         return node
 
     def delete_event(self, node: Node, event_id: str) -> Node:
         """根据ID删除一个事件"""
         if node.remove_event(event_id):
             print(f"✅ 事件 '{event_id}' 已删除。")
+            
+            # 同步到数据库
+            if self.sync_enabled:
+                response = self._sync_to_database("delete_event", event_id=event_id)
+                if not response.success:
+                    logger.error(f"Failed to sync event deletion: {response.error}")
+                    print(f"⚠️ 警告: 事件删除未能同步到数据库: {response.error}")
+                else:
+                    print("✅ 事件删除已同步到数据库。")
         else:
             print(f"❌ 错误: 未找到ID为 '{event_id}' 的事件。")
         return node
+    
+    # ============== 新增的数据库同步便利方法 ==============
+    
+    def update_event(self, node: Node, event_id: str, **updates) -> Node:
+        """更新事件并同步到数据库"""
+        # 在本地查找并更新事件
+        for event in node.events:
+            if event.id == event_id:
+                for key, value in updates.items():
+                    if hasattr(event, key):
+                        setattr(event, key, value)
+                
+                # 同步到数据库
+                if self.sync_enabled:
+                    response = self._sync_to_database("update_event", event_id=event_id, **updates)
+                    
+                    if not response.success:
+                        logger.error(f"Failed to sync event update: {response.error}")
+                        print(f"⚠️ 警告: 事件更新未能同步到数据库: {response.error}")
+                    else:
+                        print(f"✅ 事件 '{event_id}' 已更新并同步到数据库。")
+                break
+        else:
+            print(f"❌ 错误: 未找到ID为 '{event_id}' 的事件。")
+        
+        return node
+    
+    def batch_sync_node(self, node: Node) -> List[APIResponse]:
+        """批量同步节点的所有组件到数据库"""
+        responses = []
+        
+        if not self.sync_enabled:
+            return [APIResponse(success=True, data="Sync disabled")]
+        
+        # 同步节点自身
+        node_response = self._sync_to_database(
+            "update_node",
+            node_id=node.id,
+            scene=node.scene,
+            node_type=node.node_type.value if hasattr(node.node_type, 'value') else node.node_type,
+            metadata=node.metadata
+        )
+        responses.append(node_response)
+        
+        # 同步所有事件
+        for event in node.events:
+            if hasattr(event, 'id') and event.id:
+                event_response = self._sync_to_database(
+                    "update_event",
+                    event_id=event.id,
+                    content=event.content,
+                    speaker=event.speaker,
+                    description=event.description,
+                    timestamp=event.timestamp,
+                    event_type=event.event_type,
+                    metadata=event.metadata
+                )
+                responses.append(event_response)
+        
+        # 同步所有动作
+        for binding in node.outgoing_actions:
+            action = binding.action
+            if hasattr(action, 'id') and action.id:
+                action_response = self._sync_to_database(
+                    "update_action",
+                    action_id=action.id,
+                    description=action.description,
+                    is_key_action=action.is_key_action,
+                    metadata=action.metadata
+                )
+                responses.append(action_response)
+        
+        # 记录结果
+        success_count = sum(1 for r in responses if r.success)
+        total_count = len(responses)
+        print(f"✅ 批量同步完成: {success_count}/{total_count} 项成功同步到数据库。")
+        
+        return responses
 
     # ============== 用户自定义节点创建功能 ==============
     
@@ -636,3 +896,29 @@ class NarrativeEditor:
         overview["connections_count"] = total_connections
         
         return overview 
+
+
+# ============== 便利函数 ==============
+
+def create_database_sync_editor(generator: NarrativeGenerator, 
+                               narrative_graph: Optional[NarrativeGraph] = None,
+                               auth_token: str = None, 
+                               auto_sync: bool = True) -> NarrativeEditor:
+    """
+    创建一个支持数据库同步的NarrativeEditor实例
+    
+    Args:
+        generator: NarrativeGenerator实例
+        narrative_graph: 可选的NarrativeGraph实例
+        auth_token: 认证令牌
+        auto_sync: 是否自动同步到数据库
+    
+    Returns:
+        配置好的NarrativeEditor实例
+    """
+    return NarrativeEditor(
+        generator=generator,
+        narrative_graph=narrative_graph,
+        auth_token=auth_token,
+        auto_sync=auto_sync
+    ) 

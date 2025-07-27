@@ -104,6 +104,91 @@ class SaveGraphRequest(BaseModel):
     world_state: Optional[Dict[str, Any]] = None
 
 # ====================
+# NODE, EVENT, ACTION CRUD MODELS
+# ====================
+
+class NodeUpdateRequest(BaseModel):
+    scene: Optional[str] = None
+    node_type: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+class NodeResponse(BaseModel):
+    id: str
+    project_id: str
+    scene: str
+    node_type: str
+    level: int
+    parent_node_id: Optional[str]
+    metadata: Dict[str, Any]
+    created_at: datetime
+    updated_at: datetime
+
+class EventCreateRequest(BaseModel):
+    node_id: str
+    content: str
+    speaker: str = ""
+    description: str = ""
+    timestamp: int = 0
+    event_type: str = "dialogue"
+    metadata: Optional[Dict[str, Any]] = None
+
+class EventUpdateRequest(BaseModel):
+    content: Optional[str] = None
+    speaker: Optional[str] = None
+    description: Optional[str] = None
+    timestamp: Optional[int] = None
+    event_type: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+class EventResponse(BaseModel):
+    id: str
+    node_id: str
+    speaker: str
+    content: str
+    description: str
+    timestamp: int
+    event_type: str
+    metadata: Dict[str, Any]
+    created_at: datetime
+
+class ActionCreateRequest(BaseModel):
+    description: str
+    is_key_action: bool = False
+    event_id: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+class ActionUpdateRequest(BaseModel):
+    description: Optional[str] = None
+    is_key_action: Optional[bool] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+class ActionResponse(BaseModel):
+    id: str
+    event_id: Optional[str]
+    description: str
+    is_key_action: bool
+    metadata: Dict[str, Any]
+    created_at: datetime
+
+class ActionBindingCreateRequest(BaseModel):
+    action_id: str
+    source_node_id: str
+    target_node_id: Optional[str] = None
+    target_event_id: Optional[str] = None
+
+class ActionBindingUpdateRequest(BaseModel):
+    target_node_id: Optional[str] = None
+    target_event_id: Optional[str] = None
+
+class ActionBindingResponse(BaseModel):
+    id: str
+    action_id: str
+    source_node_id: str
+    target_node_id: Optional[str]
+    target_event_id: Optional[str]
+    created_at: datetime
+
+# ====================
 # USER AUTHENTICATION MODELS
 # ====================
 
@@ -742,3 +827,435 @@ def get_token_balance(current_user = Depends(get_current_user), db: Session = De
     token_repo = TokenRepository(db)
     balance = token_repo.get_user_balance(current_user.id)
     return {"user_id": current_user.id, "token_balance": balance}
+
+# ====================
+# NODE CRUD ENDPOINTS
+# ====================
+
+@app.put("/nodes/{node_id}", response_model=NodeResponse)
+def update_node(node_id: str, updates: NodeUpdateRequest, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Update a narrative node"""
+    try:
+        node_repo = NodeRepository(db)
+        narrative_repo = NarrativeRepository(db)
+        
+        # Get the node first to verify ownership
+        node = node_repo.get_node(node_id)
+        if not node:
+            raise HTTPException(status_code=404, detail="Node not found")
+        
+        # Verify that the user owns the project containing this node
+        project = narrative_repo.get_project(node.project_id)
+        if not project or project.owner_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied: You don't own this project")
+        
+        # Prepare update data, filtering out None values
+        update_data = {k: v for k, v in updates.dict().items() if v is not None}
+        
+        # Update the node
+        updated_node = node_repo.update_node(node_id, **update_data)
+        if not updated_node:
+            raise HTTPException(status_code=404, detail="Node not found")
+        
+        return NodeResponse(
+            id=updated_node.id,
+            project_id=updated_node.project_id,
+            scene=updated_node.scene,
+            node_type=updated_node.node_type,
+            level=updated_node.level,
+            parent_node_id=updated_node.parent_node_id,
+            metadata=updated_node.meta_data or {},
+            created_at=updated_node.created_at,
+            updated_at=updated_node.updated_at
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating node: {str(e)}")
+
+@app.delete("/nodes/{node_id}")
+def delete_node(node_id: str, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Delete a narrative node"""
+    try:
+        node_repo = NodeRepository(db)
+        narrative_repo = NarrativeRepository(db)
+        
+        # Get the node first to verify ownership
+        node = node_repo.get_node(node_id)
+        if not node:
+            raise HTTPException(status_code=404, detail="Node not found")
+        
+        # Verify that the user owns the project containing this node
+        project = narrative_repo.get_project(node.project_id)
+        if not project or project.owner_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied: You don't own this project")
+        
+        # Delete the node
+        success = node_repo.delete_node(node_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Node not found")
+        
+        return {"message": f"Node {node_id} deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting node: {str(e)}")
+
+# ====================
+# EVENT CRUD ENDPOINTS
+# ====================
+
+@app.post("/events", response_model=EventResponse)
+def create_event(event_data: EventCreateRequest, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Create a new narrative event"""
+    try:
+        event_repo = EventRepository(db)
+        node_repo = NodeRepository(db)
+        narrative_repo = NarrativeRepository(db)
+        
+        # Verify that the user owns the project containing the target node
+        node = node_repo.get_node(event_data.node_id)
+        if not node:
+            raise HTTPException(status_code=404, detail="Node not found")
+        
+        project = narrative_repo.get_project(node.project_id)
+        if not project or project.owner_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied: You don't own this project")
+        
+        # Create the event
+        event = event_repo.create_event(
+            node_id=event_data.node_id,
+            content=event_data.content,
+            speaker=event_data.speaker,
+            description=event_data.description,
+            timestamp=event_data.timestamp,
+            event_type=event_data.event_type,
+            metadata=event_data.metadata
+        )
+        
+        return EventResponse(
+            id=event.id,
+            node_id=event.node_id,
+            speaker=event.speaker,
+            content=event.content,
+            description=event.description,
+            timestamp=event.timestamp,
+            event_type=event.event_type,
+            metadata=event.meta_data or {},
+            created_at=event.created_at
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating event: {str(e)}")
+
+@app.put("/events/{event_id}", response_model=EventResponse)
+def update_event(event_id: str, updates: EventUpdateRequest, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Update a narrative event"""
+    try:
+        event_repo = EventRepository(db)
+        node_repo = NodeRepository(db)
+        narrative_repo = NarrativeRepository(db)
+        
+        # Get the event first to verify ownership
+        event = event_repo.get_event(event_id)
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        # Verify that the user owns the project containing this event
+        node = node_repo.get_node(event.node_id)
+        project = narrative_repo.get_project(node.project_id)
+        if not project or project.owner_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied: You don't own this project")
+        
+        # Prepare update data, filtering out None values
+        update_data = {k: v for k, v in updates.dict().items() if v is not None}
+        
+        # Update the event
+        updated_event = event_repo.update_event(event_id, **update_data)
+        if not updated_event:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        return EventResponse(
+            id=updated_event.id,
+            node_id=updated_event.node_id,
+            speaker=updated_event.speaker,
+            content=updated_event.content,
+            description=updated_event.description,
+            timestamp=updated_event.timestamp,
+            event_type=updated_event.event_type,
+            metadata=updated_event.meta_data or {},
+            created_at=updated_event.created_at
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating event: {str(e)}")
+
+@app.delete("/events/{event_id}")
+def delete_event(event_id: str, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Delete a narrative event"""
+    try:
+        event_repo = EventRepository(db)
+        node_repo = NodeRepository(db)
+        narrative_repo = NarrativeRepository(db)
+        
+        # Get the event first to verify ownership
+        event = event_repo.get_event(event_id)
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        # Verify that the user owns the project containing this event
+        node = node_repo.get_node(event.node_id)
+        project = narrative_repo.get_project(node.project_id)
+        if not project or project.owner_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied: You don't own this project")
+        
+        # Delete the event
+        success = event_repo.delete_event(event_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        return {"message": f"Event {event_id} deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting event: {str(e)}")
+
+# ====================
+# ACTION CRUD ENDPOINTS
+# ====================
+
+@app.post("/actions", response_model=ActionResponse)
+def create_action(action_data: ActionCreateRequest, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Create a new action"""
+    try:
+        action_repo = ActionRepository(db)
+        event_repo = EventRepository(db)
+        node_repo = NodeRepository(db)
+        narrative_repo = NarrativeRepository(db)
+        
+        # If event_id is provided, verify ownership through the event's node
+        if action_data.event_id:
+            event = event_repo.get_event(action_data.event_id)
+            if not event:
+                raise HTTPException(status_code=404, detail="Event not found")
+            
+            node = node_repo.get_node(event.node_id)
+            project = narrative_repo.get_project(node.project_id)
+            if not project or project.owner_id != current_user.id:
+                raise HTTPException(status_code=403, detail="Access denied: You don't own this project")
+        
+        # Create the action
+        action = action_repo.create_action(
+            description=action_data.description,
+            is_key_action=action_data.is_key_action,
+            event_id=action_data.event_id,
+            metadata=action_data.metadata
+        )
+        
+        return ActionResponse(
+            id=action.id,
+            event_id=action.event_id,
+            description=action.description,
+            is_key_action=action.is_key_action,
+            metadata=action.meta_data or {},
+            created_at=action.created_at
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating action: {str(e)}")
+
+@app.put("/actions/{action_id}", response_model=ActionResponse)
+def update_action(action_id: str, updates: ActionUpdateRequest, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Update an action"""
+    try:
+        action_repo = ActionRepository(db)
+        event_repo = EventRepository(db)
+        node_repo = NodeRepository(db)
+        narrative_repo = NarrativeRepository(db)
+        
+        # Get the action first to verify ownership
+        action = action_repo.get_action(action_id)
+        if not action:
+            raise HTTPException(status_code=404, detail="Action not found")
+        
+        # Verify ownership through the action's event (if it has one)
+        if action.event_id:
+            event = event_repo.get_event(action.event_id)
+            node = node_repo.get_node(event.node_id)
+            project = narrative_repo.get_project(node.project_id)
+            if not project or project.owner_id != current_user.id:
+                raise HTTPException(status_code=403, detail="Access denied: You don't own this project")
+        
+        # Prepare update data, filtering out None values
+        update_data = {k: v for k, v in updates.dict().items() if v is not None}
+        
+        # Update the action
+        updated_action = action_repo.update_action(action_id, **update_data)
+        if not updated_action:
+            raise HTTPException(status_code=404, detail="Action not found")
+        
+        return ActionResponse(
+            id=updated_action.id,
+            event_id=updated_action.event_id,
+            description=updated_action.description,
+            is_key_action=updated_action.is_key_action,
+            metadata=updated_action.meta_data or {},
+            created_at=updated_action.created_at
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating action: {str(e)}")
+
+@app.delete("/actions/{action_id}")
+def delete_action(action_id: str, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Delete an action"""
+    try:
+        action_repo = ActionRepository(db)
+        event_repo = EventRepository(db)
+        node_repo = NodeRepository(db)
+        narrative_repo = NarrativeRepository(db)
+        
+        # Get the action first to verify ownership
+        action = action_repo.get_action(action_id)
+        if not action:
+            raise HTTPException(status_code=404, detail="Action not found")
+        
+        # Verify ownership through the action's event (if it has one)
+        if action.event_id:
+            event = event_repo.get_event(action.event_id)
+            node = node_repo.get_node(event.node_id)
+            project = narrative_repo.get_project(node.project_id)
+            if not project or project.owner_id != current_user.id:
+                raise HTTPException(status_code=403, detail="Access denied: You don't own this project")
+        
+        # Delete the action
+        success = action_repo.delete_action(action_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Action not found")
+        
+        return {"message": f"Action {action_id} deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting action: {str(e)}")
+
+# ====================
+# ACTION BINDING CRUD ENDPOINTS
+# ====================
+
+@app.post("/action-bindings", response_model=ActionBindingResponse)
+def create_action_binding(binding_data: ActionBindingCreateRequest, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Create a new action binding"""
+    try:
+        action_repo = ActionRepository(db)
+        node_repo = NodeRepository(db)
+        narrative_repo = NarrativeRepository(db)
+        
+        # Verify ownership through the source node
+        source_node = node_repo.get_node(binding_data.source_node_id)
+        if not source_node:
+            raise HTTPException(status_code=404, detail="Source node not found")
+        
+        project = narrative_repo.get_project(source_node.project_id)
+        if not project or project.owner_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied: You don't own this project")
+        
+        # Verify that the action exists
+        action = action_repo.get_action(binding_data.action_id)
+        if not action:
+            raise HTTPException(status_code=404, detail="Action not found")
+        
+        # Create the action binding
+        binding = action_repo.create_action_binding(
+            action_id=binding_data.action_id,
+            source_node_id=binding_data.source_node_id,
+            target_node_id=binding_data.target_node_id,
+            target_event_id=binding_data.target_event_id
+        )
+        
+        return ActionBindingResponse(
+            id=binding.id,
+            action_id=binding.action_id,
+            source_node_id=binding.source_node_id,
+            target_node_id=binding.target_node_id,
+            target_event_id=binding.target_event_id,
+            created_at=binding.created_at
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating action binding: {str(e)}")
+
+@app.put("/action-bindings/{binding_id}", response_model=ActionBindingResponse)
+def update_action_binding(binding_id: str, updates: ActionBindingUpdateRequest, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Update an action binding"""
+    try:
+        action_repo = ActionRepository(db)
+        node_repo = NodeRepository(db)
+        narrative_repo = NarrativeRepository(db)
+        
+        # Get the binding first to verify ownership
+        binding = action_repo.get_action_binding(binding_id)
+        if not binding:
+            raise HTTPException(status_code=404, detail="Action binding not found")
+        
+        # Verify ownership through the source node
+        source_node = node_repo.get_node(binding.source_node_id)
+        project = narrative_repo.get_project(source_node.project_id)
+        if not project or project.owner_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied: You don't own this project")
+        
+        # Prepare update data, filtering out None values
+        update_data = {k: v for k, v in updates.dict().items() if v is not None}
+        
+        # Update the action binding
+        updated_binding = action_repo.update_action_binding(binding_id, **update_data)
+        if not updated_binding:
+            raise HTTPException(status_code=404, detail="Action binding not found")
+        
+        return ActionBindingResponse(
+            id=updated_binding.id,
+            action_id=updated_binding.action_id,
+            source_node_id=updated_binding.source_node_id,
+            target_node_id=updated_binding.target_node_id,
+            target_event_id=updated_binding.target_event_id,
+            created_at=updated_binding.created_at
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating action binding: {str(e)}")
+
+@app.delete("/action-bindings/{binding_id}")
+def delete_action_binding(binding_id: str, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Delete an action binding"""
+    try:
+        action_repo = ActionRepository(db)
+        node_repo = NodeRepository(db)
+        narrative_repo = NarrativeRepository(db)
+        
+        # Get the binding first to verify ownership
+        binding = action_repo.get_action_binding(binding_id)
+        if not binding:
+            raise HTTPException(status_code=404, detail="Action binding not found")
+        
+        # Verify ownership through the source node
+        source_node = node_repo.get_node(binding.source_node_id)
+        project = narrative_repo.get_project(source_node.project_id)
+        if not project or project.owner_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied: You don't own this project")
+        
+        # Delete the action binding
+        success = action_repo.delete_action_binding(binding_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Action binding not found")
+        
+        return {"message": f"Action binding {binding_id} deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting action binding: {str(e)}")

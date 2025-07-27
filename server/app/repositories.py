@@ -196,6 +196,10 @@ class EventRepository:
         self.db.refresh(event)
         return event
 
+    def get_event(self, event_id: str) -> Optional[NarrativeEvent]:
+        """Get an event by ID"""
+        return self.db.query(NarrativeEvent).filter(NarrativeEvent.id == event_id).first()
+
     def get_events_by_node(self, node_id: str) -> List[NarrativeEvent]:
         """Get all events for a node"""
         return self.db.query(NarrativeEvent).filter(NarrativeEvent.node_id == node_id).order_by(NarrativeEvent.timestamp).all()
@@ -210,6 +214,15 @@ class EventRepository:
             self.db.commit()
             self.db.refresh(event)
         return event
+
+    def delete_event(self, event_id: str) -> bool:
+        """Delete an event and all its dependencies"""
+        event = self.get_event(event_id)
+        if event:
+            self.db.delete(event)
+            self.db.commit()
+            return True
+        return False
 
 
 class ActionRepository:
@@ -232,6 +245,30 @@ class ActionRepository:
         self.db.refresh(action)
         return action
 
+    def get_action(self, action_id: str) -> Optional[Action]:
+        """Get an action by ID"""
+        return self.db.query(Action).filter(Action.id == action_id).first()
+
+    def update_action(self, action_id: str, **updates) -> Optional[Action]:
+        """Update an action"""
+        action = self.get_action(action_id)
+        if action:
+            for key, value in updates.items():
+                if hasattr(action, key):
+                    setattr(action, key, value)
+            self.db.commit()
+            self.db.refresh(action)
+        return action
+
+    def delete_action(self, action_id: str) -> bool:
+        """Delete an action and all its dependencies"""
+        action = self.get_action(action_id)
+        if action:
+            self.db.delete(action)
+            self.db.commit()
+            return True
+        return False
+
     def create_action_binding(self, action_id: str, source_node_id: str, 
                              target_node_id: str = None, target_event_id: str = None) -> ActionBinding:
         """Create an action binding"""
@@ -245,6 +282,30 @@ class ActionRepository:
         self.db.commit()
         self.db.refresh(binding)
         return binding
+
+    def get_action_binding(self, binding_id: str) -> Optional[ActionBinding]:
+        """Get an action binding by ID"""
+        return self.db.query(ActionBinding).filter(ActionBinding.id == binding_id).first()
+
+    def update_action_binding(self, binding_id: str, **updates) -> Optional[ActionBinding]:
+        """Update an action binding"""
+        binding = self.get_action_binding(binding_id)
+        if binding:
+            for key, value in updates.items():
+                if hasattr(binding, key):
+                    setattr(binding, key, value)
+            self.db.commit()
+            self.db.refresh(binding)
+        return binding
+
+    def delete_action_binding(self, binding_id: str) -> bool:
+        """Delete an action binding"""
+        binding = self.get_action_binding(binding_id)
+        if binding:
+            self.db.delete(binding)
+            self.db.commit()
+            return True
+        return False
 
 
 class WorldStateRepository:
