@@ -1,10 +1,17 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Any, Optional, Dict
+from typing import Any, Optional, Dict, List
 from contextlib import asynccontextmanager
-from app.agent.llm_client import LLMClient
+from sqlalchemy.orm import Session
 import logging
+
+from app.agent.llm_client import LLMClient
+from app.database import get_db, create_tables
+from app.repositories import (
+    NarrativeRepository, NodeRepository, EventRepository, 
+    ActionRepository, WorldStateRepository, NarrativeGraphRepository
+)
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +24,10 @@ async def lifespan(app: FastAPI):
     # Startup
     global llm_client_instance
     llm_client_instance = LLMClient()
+    
+    # Create database tables
+    create_tables()
+    logger.info("Database tables created")
     logger.info("LLM client initialized on startup")
     
     yield
@@ -41,12 +52,32 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Pydantic models for requests and responses
+class ProjectCreateRequest(BaseModel):
+    title: str
+    description: str = ""
+    world_setting: str = ""
+    characters: List[str] = []
+    style: str = ""
+
+class ProjectResponse(BaseModel):
+    id: str
+    title: str
+    description: str
+    world_setting: str
+    characters: List[str]
+    style: str
+    start_node_id: Optional[str]
+    created_at: str
+    updated_at: str
+
 class NarrativePayload(BaseModel):
     request_type: str
     context: Dict[str, Any]
     current_node: Optional[Dict[str, Any]] = None
     user_input: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
+    project_id: Optional[str] = None
 
 class NarrativeResponse(BaseModel):
     success: bool
@@ -54,12 +85,181 @@ class NarrativeResponse(BaseModel):
     error: Optional[str] = None
     message: Optional[str] = None
 
+class SaveGraphRequest(BaseModel):
+    project_id: Optional[str] = None
+    graph_data: Dict[str, Any]
+    world_state: Optional[Dict[str, Any]] = None
+
 @app.get("/")
 def read_root():
     return {"message": "Interactive Narrative API is running"}
 
+# Database management endpoints
+@app.post("/projects", response_model=ProjectResponse)
+def create_project(request: ProjectCreateRequest, db: Session = Depends(get_db)):
+    """Create a new narrative project"""
+    try:
+        narrative_repo = NarrativeRepository(db)
+        project = narrative_repo.create_project(
+            title=request.title,
+            description=request.description,
+            world_setting=request.world_setting,
+            characters=request.characters,
+            style=request.style
+        )
+        
+        return ProjectResponse(
+            id=project.id,
+            title=project.title,
+            description=project.description or "",
+            world_setting=project.world_setting or "",
+            characters=project.characters or [],
+            style=project.style or "",
+            start_node_id=project.start_node_id,
+            created_at=project.created_at.isoformat(),
+            updated_at=project.updated_at.isoformat()
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating project: {str(e)}")
+
+@app.get("/projects", response_model=List[ProjectResponse])
+def get_all_projects(db: Session = Depends(get_db)):
+    """Get all narrative projects"""
+    try:
+        narrative_repo = NarrativeRepository(db)
+        projects = narrative_repo.get_all_projects()
+        
+        return [
+            ProjectResponse(
+                id=project.id,
+                title=project.title,
+                description=project.description or "",
+                world_setting=project.world_setting or "",
+                characters=project.characters or [],
+                style=project.style or "",
+                start_node_id=project.start_node_id,
+                created_at=project.created_at.isoformat(),
+                updated_at=project.updated_at.isoformat()
+            )
+            for project in projects
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching projects: {str(e)}")
+
+@app.get("/projects/{project_id}", response_model=ProjectResponse)
+def get_project(project_id: str, db: Session = Depends(get_db)):
+    """Get a specific project"""
+    try:
+        narrative_repo = NarrativeRepository(db)
+        project = narrative_repo.get_project(project_id)
+        
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+        
+        return ProjectResponse(
+            id=project.id,
+            title=project.title,
+            description=project.description or "",
+            world_setting=project.world_setting or "",
+            characters=project.characters or [],
+            style=project.style or "",
+            start_node_id=project.start_node_id,
+            created_at=project.created_at.isoformat(),
+            updated_at=project.updated_at.isoformat()
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching project: {str(e)}")
+
+@app.delete("/projects/{project_id}")
+def delete_project(project_id: str, db: Session = Depends(get_db)):
+    """Delete a project"""
+    try:
+        narrative_repo = NarrativeRepository(db)
+        success = narrative_repo.delete_project(project_id)
+        
+        if not success:
+            raise HTTPException(status_code=404, detail="Project not found")
+        
+        return {"message": f"Project {project_id} deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting project: {str(e)}")
+
+@app.post("/save_graph")
+def save_narrative_graph(request: SaveGraphRequest, db: Session = Depends(get_db)):
+    """Save a narrative graph to the database"""
+    try:
+        graph_repo = NarrativeGraphRepository(db)
+        
+        # Here you would convert the graph_data to a NarrativeGraph object
+        # For now, just save basic info
+        narrative_repo = NarrativeRepository(db)
+        
+        if request.project_id:
+            # Update existing project
+            project = narrative_repo.get_project(request.project_id)
+            if not project:
+                raise HTTPException(status_code=404, detail="Project not found")
+            project_id = request.project_id
+        else:
+            # Create new project
+            project = narrative_repo.create_project(
+                title=request.graph_data.get("title", "Untitled Story"),
+                description="Saved narrative graph"
+            )
+            project_id = project.id
+
+        # Save world state if provided
+        if request.world_state:
+            world_state_repo = WorldStateRepository(db)
+            world_state_repo.save_world_state(
+                project_id=project_id,
+                current_node_id=request.world_state.get("current_node_id"),
+                state_data=request.world_state
+            )
+
+        return {
+            "success": True,
+            "project_id": project_id,
+            "message": "Graph saved successfully"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error saving graph: {str(e)}")
+
+@app.get("/load_graph/{project_id}")
+def load_narrative_graph(project_id: str, db: Session = Depends(get_db)):
+    """Load a narrative graph from the database"""
+    try:
+        graph_repo = NarrativeGraphRepository(db)
+        world_state_repo = WorldStateRepository(db)
+        
+        # Load the narrative graph
+        graph = graph_repo.load_narrative_graph(project_id)
+        if not graph:
+            raise HTTPException(status_code=404, detail="Graph not found")
+        
+        # Load world state
+        world_state = world_state_repo.get_world_state(project_id)
+        
+        return {
+            "success": True,
+            "data": {
+                "graph": graph.to_dict() if hasattr(graph, 'to_dict') else {},
+                "world_state": world_state.state_data if world_state else {}
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error loading graph: {str(e)}")
+
 @app.post("/narrative", response_model=NarrativeResponse)
-def handle_narrative_request(payload: NarrativePayload, llm_client: LLMClient = Depends(get_llm_client)):
+def handle_narrative_request(payload: NarrativePayload, llm_client: LLMClient = Depends(get_llm_client), db: Session = Depends(get_db)):
     """
     Unified endpoint for all narrative operations.
     Handles structured payloads and routes to appropriate business logic.
@@ -78,6 +278,7 @@ def handle_narrative_request(payload: NarrativePayload, llm_client: LLMClient = 
             
             # TODO: Call your NarrativeGenerator.bootstrap_node() here
             # For now, return a mock response
+            
             result = {
                 "node": {
                     "scene": f"Generated story based on: {idea}",
@@ -86,6 +287,16 @@ def handle_narrative_request(payload: NarrativePayload, llm_client: LLMClient = 
                 },
                 "world_state": {}
             }
+            
+            # Auto-save to database if project_id provided
+            if payload.project_id:
+                try:
+                    graph_repo = NarrativeGraphRepository(db)
+                    # Create a simple node and save it
+                    # This would be replaced with actual NarrativeGenerator integration
+                    pass
+                except Exception as save_error:
+                    logger.error(f"Error auto-saving: {save_error}")
             
             return NarrativeResponse(
                 success=True,

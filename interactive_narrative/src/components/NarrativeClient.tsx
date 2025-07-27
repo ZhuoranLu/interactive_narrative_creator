@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import StoryTreeGraph from './StoryTreeGraph';
 
 interface NarrativePayload {
   request_type: string;
@@ -15,10 +16,42 @@ interface NarrativeResponse {
   message?: string;
 }
 
+interface StoryNode {
+  id: string;
+  level: number;
+  type: string;
+  parent_node_id?: string;
+  data: {
+    scene: string;
+    outgoing_actions: Array<{
+      action: {
+        id: string;
+        description: string;
+        is_key_action: boolean;
+      };
+      target_node_id: string | null;
+    }>;
+  };
+}
+
+interface StoryTree {
+  nodes: Record<string, StoryNode>;
+  connections: Array<{
+    from_node_id: string;
+    to_node_id: string;
+    action_id: string;
+    action_description: string;
+  }>;
+  root_node_id: string;
+}
+
 const NarrativeClient = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [response, setResponse] = useState<NarrativeResponse | null>(null);
   const [error, setError] = useState<string>('');
+  const [userInput, setUserInput] = useState<string>('');
+  const [storyTree, setStoryTree] = useState<StoryTree | null>(null);
+  const [loadingStory, setLoadingStory] = useState<boolean>(false);
 
   const API_BASE_URL = 'http://localhost:8000';
 
@@ -48,6 +81,53 @@ const NarrativeClient = () => {
       return null;
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Transform the loaded JSON data to match StoryTree interface
+  const transformStoryData = (jsonData: any): StoryTree => {
+    const transformedNodes: Record<string, StoryNode> = {};
+    
+    // Transform nodes
+    Object.entries(jsonData.nodes).forEach(([nodeId, nodeData]: [string, any]) => {
+      transformedNodes[nodeId] = {
+        id: nodeId,
+        level: nodeData.level,
+        type: nodeData.type,
+        parent_node_id: nodeData.parent_node_id,
+        data: {
+          scene: nodeData.data.scene,
+          outgoing_actions: nodeData.data.outgoing_actions || []
+        }
+      };
+    });
+
+    return {
+      nodes: transformedNodes,
+      connections: jsonData.connections || [],
+      root_node_id: jsonData.root_node_id
+    };
+  };
+
+  // Load story from public folder
+  const loadStoryExample = async () => {
+    setLoadingStory(true);
+    setError('');
+    
+    try {
+      const response = await fetch('/story_tree_example.json');
+      if (!response.ok) {
+        throw new Error(`Failed to load story: ${response.status}`);
+      }
+      
+      const jsonData = await response.json();
+      const transformedStory = transformStoryData(jsonData);
+      setStoryTree(transformedStory);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load story';
+      setError(errorMessage);
+    } finally {
+      setLoadingStory(false);
     }
   };
 
@@ -89,8 +169,8 @@ const NarrativeClient = () => {
   };
 
   return (
-    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-      <h2>Interactive Narrative Client</h2>
+    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+      <h2>Interactive Narrative Creator</h2>
       
       <div style={{ marginBottom: '20px' }}>
         <button 
@@ -119,6 +199,61 @@ const NarrativeClient = () => {
           style={{ marginLeft: '10px' }}
         >
           Regenerate Scene
+        </button>
+        <button 
+          onClick={loadStoryExample}
+          disabled={loadingStory}
+          style={{ 
+            marginLeft: '10px',
+            backgroundColor: '#28a745',
+            color: 'white',
+            border: 'none',
+            padding: '8px 16px',
+            borderRadius: '4px',
+            cursor: loadingStory ? 'not-allowed' : 'pointer'
+          }}
+        >
+          {loadingStory ? 'Loading...' : 'Load Story Example'}
+        </button>
+      </div>
+
+      {/* Story Tree Visualization */}
+      {storyTree && (
+        <div style={{ marginBottom: '30px' }}>
+          <h3>Story Tree Visualization</h3>
+          <StoryTreeGraph storyData={storyTree} />
+        </div>
+      )}
+
+      <div style={{ marginBottom: '20px', padding: '15px', border: '1px solid #ddd', borderRadius: '4px' }}>
+        <h3>Create Your Story</h3>
+        <textarea 
+          value={userInput}
+          onChange={(e) => setUserInput(e.target.value)}
+          placeholder="Enter your story idea or prompt..."
+          style={{ 
+            width: '100%', 
+            height: '80px', 
+            padding: '10px', 
+            borderRadius: '4px', 
+            border: '1px solid #ccc',
+            resize: 'vertical'
+          }}
+        />
+        <button 
+          onClick={() => handleBootstrapStory(userInput)}
+          disabled={loading || !userInput.trim()}
+          style={{ 
+            marginTop: '10px', 
+            padding: '8px 16px', 
+            backgroundColor: '#007bff', 
+            color: 'white', 
+            border: 'none', 
+            borderRadius: '4px',
+            cursor: loading || !userInput.trim() ? 'not-allowed' : 'pointer'
+          }}
+        >
+          Start Story
         </button>
       </div>
 

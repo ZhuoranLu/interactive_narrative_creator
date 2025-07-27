@@ -1,0 +1,17 @@
+.home-page {
+  min-height: 100vh;
+  background-color: #282c34;
+  color: white;
+}
+
+.home-content {
+  padding: 2rem;
+  display: flex;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .home-content {
+    padding: 1rem;
+  }
+} 

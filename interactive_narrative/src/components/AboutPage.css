@@ -1,0 +1,97 @@
+.about-page {
+  min-height: 100vh;
+  background-color: #282c34;
+  color: white;
+}
+
+.about-content {
+  padding: 3rem 2rem;
+  display: flex;
+  justify-content: center;
+}
+
+.about-card {
+  background: rgba(26, 26, 26, 0.95);
+  border-radius: 12px;
+  padding: 3rem;
+  max-width: 800px;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.about-card h2 {
+  color: #667eea;
+  font-size: 2.5rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.about-card p {
+  font-size: 1.2rem;
+  line-height: 1.6;
+  color: #b0b0b0;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.features {
+  margin-bottom: 2rem;
+}
+
+.features h3 {
+  color: #ffffff;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.features ul {
+  list-style: none;
+  padding: 0;
+}
+
+.features li {
+  padding: 0.5rem 0;
+  font-size: 1.1rem;
+  color: #b0b0b0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.features li:last-child {
+  border-bottom: none;
+}
+
+.tech-stack h3 {
+  color: #ffffff;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.tech-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tech-badge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .about-content {
+    padding: 2rem 1rem;
+  }
+  
+  .about-card {
+    padding: 2rem;
+  }
+  
+  .about-card h2 {
+    font-size: 2rem;
+  }
+} 

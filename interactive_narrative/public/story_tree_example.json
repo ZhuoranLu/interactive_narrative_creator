@@ -1,0 +1,572 @@
+{
+  "metadata": {
+    "title": "深夜来电",
+    "description": "完整的故事树结构示例",
+    "generator_settings": {
+      "world_setting": "现代都市悬疑",
+      "characters": [
+        "侦探林雨",
+        "神秘来电者",
+        "酒吧老板"
+      ],
+      "style": "悬疑推理风格"
+    }
+  },
+  "nodes": {
+    "aa8fa799-253d-4f01-9489-67d2cc62a6f4": {
+      "level": 0,
+      "type": "root",
+      "data": {
+        "id": "aa8fa799-253d-4f01-9489-67d2cc62a6f4",
+        "scene": "午夜的酒吧，像一口深藏秘密的旧匣子，沉沉地压在城市的边缘地带。空气中漂浮着陈年的烟草味和酒精蒸汽，昏黄的灯光在玻璃杯上打出弯曲的光影，仿佛一场迷乱的幻觉。侦探哈珀坐在吧台的一角，手边是一杯尚未饮尽的波本酒，酒液微微荡漾，映照出他疲惫的面容。他的风衣沾着雨水的痕迹，外面的街道刚刚被一场骤雨洗过，湿润的寒意透过门缝钻进来，让人不由自主地裹紧衣领。\n\n就在他思索着是否再点一杯的时候，酒吧的电话突然响了。那声音尖锐而突兀，仿佛撕开了这沉闷的夜。酒保抬起头，朝哈珀点了点下巴：“是找你的。”哈珀愣了一瞬，拿起听筒，耳边传来一个低沉却颤抖的声音，带着一股无法忽视的紧张感：“我知道关于克莱尔失踪案的真相。”他的手指无意间握紧了听筒，酒吧的嘈杂声仿佛瞬间远去，剩下的只有心跳和那声音的回响。",
+        "node_type": "scene",
+        "events": [
+          {
+            "id": "70f7f6ce-aa09-4359-919d-31dc150357b6",
+            "speaker": "醉酒男子",
+            "content": "嘿，老板，再来一杯，我告诉你，那场雨啊，简直像是天在哭泣！哈，可惜没人听得懂，没人啊！",
+            "timestamp": 1,
+            "event_type": "dialogue",
+            "description": "",
+            "actions": [],
+            "metadata": {}
+          },
+          {
+            "id": "80eb6c3c-981b-4a5f-ab90-d885346f0863",
+            "speaker": "",
+            "content": "酒吧角落里，一台老旧的点唱机发出断断续续的低语，一首上世纪的爵士曲目在它疲惫的喇叭中挣扎着流淌。曲调时而模糊，仿佛乐手的灵魂被困在这时间的夹缝里，无法逃脱。",
+            "timestamp": 2,
+            "event_type": "narration",
+            "description": "",
+            "actions": [],
+            "metadata": {}
+          },
+          {
+            "id": "341a651c-34a1-42e1-b495-d8a78804f2e9",
+            "speaker": "酒吧老板",
+            "content": "你听过那个传闻吗？有人说，这条街上每到下雨就能听见女人的哭声。嘿，别问我信不信，我只负责倒酒。",
+            "timestamp": 3,
+            "event_type": "dialogue",
+            "description": "",
+            "actions": [],
+            "metadata": {}
+          },
+          {
+            "id": "4dd97f05-b928-4f45-8fe3-87a9c6d48ef1",
+            "speaker": "",
+            "content": "酒吧门外，一辆老式出租车的引擎声渐渐远去，尾灯在湿漉漉的街道上拉出一道长长的红色痕迹。远处的霓虹灯牌闪烁不定，仿佛在和夜色展开一场漫长的对峙。",
+            "timestamp": 4,
+            "event_type": "narration",
+            "description": "",
+            "actions": [],
+            "metadata": {}
+          }
+        ],
+        "outgoing_actions": [
+          {
+            "action": {
+              "id": "action_1",
+              "description": "匆忙离开酒吧，与神秘来电者约定的地点见面。",
+              "is_key_action": true,
+              "metadata": {
+                "navigation": "continue",
+                "response": "",
+                "effects": {
+                  "world_state_changes": "主人公进入一个未知的街角，发现线索可能隐藏在危机中，同时天气持续恶劣，增加紧张氛围。"
+                }
+              }
+            },
+            "target_node_id": "31e5e8a6-d90f-4be3-b06f-31e1c24b3020",
+            "target_event": null
+          },
+          {
+            "action": {
+              "id": "action_2",
+              "description": "留在酒吧，与酒吧老板进行交谈，试图获取更多关于电话来源的信息。",
+              "is_key_action": false,
+              "metadata": {
+                "navigation": "stay",
+                "response": "酒吧老板透露一位常客曾提到克莱尔的失踪案，并提供可能的线索。",
+                "effects": {
+                  "world_state_changes": "主人公获得新的信息，酒吧的气氛更加沉重，可能引出潜在威胁。"
+                }
+              }
+            },
+            "target_node_id": null,
+            "target_event": null
+          },
+          {
+            "action": {
+              "id": "action_3",
+              "description": "质问电话中的神秘来电者，试图在电话中获取更多具体的线索。",
+              "is_key_action": false,
+              "metadata": {
+                "navigation": "stay",
+                "response": "来电者透露了一些模糊的地点和人物，但语气越来越慌张，电话突然挂断。",
+                "effects": {
+                  "world_state_changes": "主人公陷入疑惑和紧迫感，酒吧的紧张气息开始蔓延。"
+                }
+              }
+            },
+            "target_node_id": null,
+            "target_event": null
+          },
+          {
+            "action": {
+              "id": "action_4",
+              "description": "带着波本酒离开酒吧，回到自己的办公室整理思路，尝试解读来电者提供的信息。",
+              "is_key_action": true,
+              "metadata": {
+                "navigation": "continue",
+                "response": "",
+                "effects": {
+                  "world_state_changes": "办公室场景开启，主人公发现线索中包含某种危险的暗示，氛围更加悬疑。"
+                }
+              }
+            },
+            "target_node_id": "8df3c67f-cd72-4b99-8e95-e79c1eb7d74a",
+            "target_event": null
+          }
+        ],
+        "metadata": {
+          "world_state": {
+            "time": "午夜时分，刚刚经历了一场骤雨，城市边缘地带的酒吧昏黄灯光下显得格外阴郁。",
+            "location": "一家陈旧的酒吧，空气中弥漫着烟草和酒精的味道，吧台的木质表面满是划痕，外面街道湿润而寒冷。",
+            "characters": {
+              "哈珀": "疲惫的侦探，穿着沾着雨水痕迹的风衣，神色凝重，手边是一杯尚未饮尽的波本酒。",
+              "酒保": "沉默的中年男子，对酒吧内的氛围习以为常，动作缓慢却精准。",
+              "神秘来电者": "声音低沉却颤抖，透着紧张和急迫，似乎掌握着克莱尔失踪案的关键信息。"
+            },
+            "key_facts": [
+              "克莱尔失踪案是哈珀最近接触的一个长期未解案件。",
+              "酒吧的电话几乎没人使用，来电显得异常突兀。",
+              "神秘来电者似乎与案件有直接关联，但身份未知。"
+            ],
+            "story_variable_1": "酒吧所在的街区以其隐秘性和复杂的人际关系著称，是许多非法交易和秘密聚会的发生地。"
+          }
+        }
+      }
+    },
+    "31e5e8a6-d90f-4be3-b06f-31e1c24b3020": {
+      "level": 1,
+      "type": "child",
+      "parent_node_id": "aa8fa799-253d-4f01-9489-67d2cc62a6f4",
+      "parent_action_id": "action_1",
+      "data": {
+        "id": "31e5e8a6-d90f-4be3-b06f-31e1c24b3020",
+        "scene": "雨水拍打着地面，仿佛城市在午夜时分吐露的低语。哈珀裹紧风衣，踩着湿滑的街道匆匆前行。空气中弥漫着沥青的潮湿气味，路灯昏暗的光线勉强划开夜的浓雾。他的鞋底踏过积水，溅起细碎的涟漪，仿佛连这雨夜都在暗中窥探。他抵达约定的地点——一座废弃的停车场，四周是生锈的铁网和残破的墙壁，像一座沉默的坟场，隐匿着不安与秘密。远处，一辆黑色轿车的尾灯一闪而灭，仿佛某种晦暗的信号。\n\n哈珀的脚步顿住，警觉地环顾四周。停车场的边缘，一道瘦削的身影慢慢显现。那人站在阴影里，脸几乎被夜色吞没，只有一声低沉的呼吸穿透空气。“你是哈珀，对吧？”对方的声音沙哑却冷静，比电话里更显压抑。哈珀缓缓点头，手指不自觉地摸向风衣内侧的枪套。雨点在金属网和废弃车身上敲击出混乱的节奏，仿佛某种不祥的预兆正在酝酿。",
+        "node_type": "scene",
+        "events": [
+          {
+            "id": "b15308b8-bcef-409f-b347-6219148a086b",
+            "speaker": "",
+            "content": "酒吧角落的老式唱片机正缓缓转动，播放着一首年代久远的爵士乐，音符时而拖长，时而戛然而止，仿佛对酒吧沉闷气氛的一种嘲讽。唱片机旁的灰尘在昏黄灯光下显得格外明显，像无人理会的时间痕迹。",
+            "timestamp": 1,
+            "event_type": "narration",
+            "description": "",
+            "actions": [],
+            "metadata": {}
+          },
+          {
+            "id": "5530f117-5466-4462-99a4-72cf8738bc7c",
+            "speaker": "路人甲",
+            "content": "听说昨晚在码头那边又出事了，一个人莫名其妙地失踪了。真是怪事，这城市最近越来越不对劲了。",
+            "timestamp": 2,
+            "event_type": "dialogue",
+            "description": "",
+            "actions": [],
+            "metadata": {}
+          },
+          {
+            "id": "7f20f4a5-007f-45b5-9d46-d8b0fb588835",
+            "speaker": "",
+            "content": "窗外传来轻微的车轮碾过积水的声响，伴随着隐约的远处警笛声，雨水在街灯下反射出晦暗的光，像一张模糊不清的油画。偶尔有湿漉漉的脚步声从酒吧门前经过，却没有人停下。",
+            "timestamp": 3,
+            "event_type": "narration",
+            "description": "",
+            "actions": [],
+            "metadata": {}
+          },
+          {
+            "id": "f133470e-dcbc-407a-9ebe-0580538976f1",
+            "speaker": "醉酒男子",
+            "content": "嘿，酒保，再来一杯！你知道吗，这城市藏着太多秘密，连黑夜都不知道该怎么掩盖它们。",
+            "timestamp": 4,
+            "event_type": "dialogue",
+            "description": "",
+            "actions": [],
+            "metadata": {}
+          }
+        ],
+        "outgoing_actions": [
+          {
+            "action": {
+              "id": "action_1",
+              "description": "哈珀决定直接走向瘦削身影，尝试逼问对方有关克莱尔失踪案的线索。",
+              "is_key_action": true,
+              "metadata": {
+                "navigation": "continue",
+                "response": "",
+                "effects": {
+                  "world_state_changes": "瘦削身影透露出部分重要信息，但同时警告哈珀他正在被跟踪，局势变得更加危险。"
+                }
+              }
+            },
+            "target_node_id": "b06606d4-eb29-40ec-8b98-4dc6ccbe98ad",
+            "target_event": null
+          },
+          {
+            "action": {
+              "id": "action_2",
+              "description": "哈珀选择绕过瘦削身影，从停车场的另一侧偷偷接近，以避免直接暴露自己的位置。",
+              "is_key_action": true,
+              "metadata": {
+                "navigation": "continue",
+                "response": "",
+                "effects": {
+                  "world_state_changes": "哈珀发现瘦削身影并非独自一人，停车场另一端有隐藏的监视者，紧张氛围加剧。"
+                }
+              }
+            },
+            "target_node_id": null,
+            "target_event": null
+          },
+          {
+            "action": {
+              "id": "action_3",
+              "description": "哈珀决定留在原地观察瘦削身影的举动，同时向酒吧老板发送一条隐秘短信，要求对方查阅电话记录。",
+              "is_key_action": false,
+              "metadata": {
+                "navigation": "stay",
+                "response": "瘦削身影显得愈发焦躁，开始向停车场深处移动，酒吧老板回复电话记录无法追踪，线索仍然模糊。",
+                "effects": {
+                  "world_state_changes": "哈珀的耐心让他发现对方的举止异常，但线索进展暂时停滞。"
+                }
+              }
+            },
+            "target_node_id": null,
+            "target_event": null
+          },
+          {
+            "action": {
+              "id": "action_4",
+              "description": "哈珀留在原地，但用手机拍摄停车场环境和瘦削身影以便留存证据，同时试图回忆近期案件细节寻找联系。",
+              "is_key_action": false,
+              "metadata": {
+                "navigation": "stay",
+                "response": "拍摄过程没有引起对方注意，但回忆中某些细节与停车场环境产生了可疑的关联。",
+                "effects": {
+                  "world_state_changes": "哈珀获得了一些潜在线索的视觉记录，脑海中的疑问开始聚焦。"
+                }
+              }
+            },
+            "target_node_id": null,
+            "target_event": null
+          }
+        ],
+        "metadata": {
+          "world_state": {
+            "time": "午夜时分，雨水持续拍打着地面，空气中弥漫着潮湿与紧张感。",
+            "location": "废弃的停车场，四周环绕着生锈的铁网与残破的墙壁，远处的黑色轿车尾灯一闪而灭。",
+            "characters": {
+              "哈珀": "身着风衣，脸上带着雨水和疲惫，手指警觉地触摸着风衣内侧的枪套，目光锐利地环顾四周。",
+              "神秘身影": "瘦削的身影，站在停车场阴影中，声音沙哑却冷静，气场压抑而隐秘。"
+            },
+            "key_facts": [
+              "电话来电者自称知晓克莱尔失踪案的真相。",
+              "约定的见面地点为废弃停车场，环境阴暗潮湿，充满不安的氛围。"
+            ],
+            "story_variable_1": "黑色轿车尾灯的闪烁暗示可能有第三方在场。",
+            "action_history": [
+              {
+                "type": "continue_action",
+                "action": "匆忙离开酒吧，与神秘来电者约定的地点见面。",
+                "effects": "主人公进入一个未知的街角，发现线索可能隐藏在危机中，同时天气持续恶劣，增加紧张氛围。"
+              },
+              {
+                "type": "continue_action",
+                "action": "哈珀决定直接走向瘦削身影，尝试逼问对方有关克莱尔失踪案的线索。",
+                "effects": "瘦削身影透露出部分重要信息，但同时警告哈珀他正在被跟踪，局势变得更加危险。"
+              }
+            ],
+            "story_variable_2": "哈珀的枪套暗示可能会出现危险或冲突。",
+            "story_variable_3": "停车场的潮湿与残破环境象征案件的复杂性和隐秘性。"
+          }
+        }
+      }
+    },
+    "8df3c67f-cd72-4b99-8e95-e79c1eb7d74a": {
+      "level": 1,
+      "type": "child",
+      "parent_node_id": "aa8fa799-253d-4f01-9489-67d2cc62a6f4",
+      "parent_action_id": "action_4",
+      "data": {
+        "id": "8df3c67f-cd72-4b99-8e95-e79c1eb7d74a",
+        "scene": "街灯的光晕在湿漉漉的街道上拉出模糊的影子，哈珀的脚步声在空旷的巷子里回荡。他拢紧风衣，将酒吧带出的半杯波本紧紧攥在手中，冰凉的玻璃杯透过手套传来微弱的刺痛。办公室的大门吱嘎一声打开，室内昏暗的灯光与外面的寒冷融为一体。桌上的文件散乱不堪，墙角的老旧收音机正播放着模糊的爵士乐，像是有人在耳边轻声低语。哈珀将酒杯放在桌上，坐下的同时抽出笔记本，翻开来电时的记录。一张折皱的纸条从笔记本中滑落，纸上写着一个陌生的地址，笔迹歪斜，仿佛是在极度慌乱中写下的。他盯着那地址，心底升起一阵寒意——这是克莱尔失踪前最后被目击的地方。\n\n窗外的雨声渐渐停歇，一片死寂笼罩着这间狭小的办公室。就在哈珀试图理清思路时，桌上的电话突然震动起来，铃声尖锐得仿佛能刺穿骨髓。他的手下意识地顿住，目光扫向电话，那闪烁的红灯与来电者的声音在脑海中重叠。他缓缓拿起听筒，耳边传来一声短促的喘息，然后是一句低沉的警告：“别去那里。”电话挂断，空气中只剩下自己急促的呼吸声。哈珀的目光落回那张纸条，指尖在桌面上无意识地敲击，似乎在权衡那未知的危险与隐藏的真相之间的平衡。",
+        "node_type": "scene",
+        "events": [],
+        "outgoing_actions": [
+          {
+            "action": {
+              "id": "action_1",
+              "description": "跟随纸条上的地址，冒险前往克莱尔失踪前最后被目击的地方。",
+              "is_key_action": true,
+              "metadata": {
+                "navigation": "continue",
+                "response": "",
+                "effects": {
+                  "world_state_changes": "主人公进入新的场景——一个破旧的工业区，灯光昏暗，四周寂静无声，带来更深层次的悬疑氛围。可能触发新的线索或陷入危险。"
+                }
+              }
+            },
+            "target_node_id": null,
+            "target_event": null
+          },
+          {
+            "action": {
+              "id": "action_2",
+              "description": "拨回电话试图追踪神秘来电者的身份，询问更多关于克莱尔失踪案的细节。",
+              "is_key_action": false,
+              "metadata": {
+                "navigation": "stay",
+                "response": "电话拨通后无人接听，但背景中隐约传来奇怪的声响，似乎是某种机械噪音，进一步增加了紧张感。",
+                "effects": {
+                  "world_state_changes": "办公室内的氛围更加压抑，主人公的疑虑加深，同时可能在听筒中捕捉到新的线索。"
+                }
+              }
+            },
+            "target_node_id": null,
+            "target_event": null
+          },
+          {
+            "action": {
+              "id": "action_3",
+              "description": "翻阅笔记本和桌上的散乱文件，试图找到与纸条地址相关的任何线索或蛛丝马迹。",
+              "is_key_action": false,
+              "metadata": {
+                "navigation": "stay",
+                "response": "主人公在文件中发现了一份旧的调查报告，其中提到该地址曾与非法交易有关，进一步加重了危险的暗示。",
+                "effects": {
+                  "world_state_changes": "主人公的疑虑加重，办公室内的悬疑氛围进一步加强，同时为后续行动提供更多背景信息。"
+                }
+              }
+            },
+            "target_node_id": null,
+            "target_event": null
+          },
+          {
+            "action": {
+              "id": "action_4",
+              "description": "离开办公室，返回酒吧向酒保询问电话的来源以及是否有其他可疑情况。",
+              "is_key_action": true,
+              "metadata": {
+                "navigation": "continue",
+                "response": "",
+                "effects": {
+                  "world_state_changes": "主人公回到酒吧，酒保透露电话的来电显示被人为隐藏，同时提到一个神秘人物最近频繁光顾酒吧。剧情线索进一步展开。"
+                }
+              }
+            },
+            "target_node_id": null,
+            "target_event": null
+          }
+        ],
+        "metadata": {
+          "world_state": {
+            "time": "凌晨1:47，雨后的寂静街道与昏暗的办公室内。",
+            "location": "侦探哈珀的办公室，位于城市边缘的一栋老旧公寓楼中，室内昏暗且凌乱，墙角的收音机播放着断断续续的爵士乐。",
+            "characters": {
+              "侦探哈珀": "疲惫且警觉，内心在未知的危险与追寻真相之间挣扎，手边是翻开的笔记本和那张陌生地址的纸条。",
+              "神秘来电者": "声音低沉且紧张，提供了与克莱尔失踪案相关的重要信息，同时发出警告，身份未知。"
+            },
+            "key_facts": [
+              "克莱尔失踪前最后被目击的地点是纸条上的地址。",
+              "神秘来电者警告哈珀不要前往该地址。",
+              "电话铃声与警告的时间点异常敏感，似乎有人在暗中监控哈珀的行动。"
+            ],
+            "story_variable_1": "纸条上的地址：红柳街47号。",
+            "action_history": [
+              {
+                "type": "continue_action",
+                "action": "带着波本酒离开酒吧，回到自己的办公室整理思路，尝试解读来电者提供的信息。",
+                "effects": "办公室场景开启，主人公发现线索中包含某种危险的暗示，氛围更加悬疑。"
+              }
+            ],
+            "story_variable_2": "来电者的身份和意图仍是谜团。",
+            "story_variable_3": "哈珀的内心开始怀疑，这件案子背后的真相可能触及更深的黑暗势力。"
+          }
+        }
+      }
+    },
+    "b06606d4-eb29-40ec-8b98-4dc6ccbe98ad": {
+      "level": 2,
+      "type": "grandchild",
+      "parent_node_id": "31e5e8a6-d90f-4be3-b06f-31e1c24b3020",
+      "parent_action_id": "action_1",
+      "data": {
+        "id": "b06606d4-eb29-40ec-8b98-4dc6ccbe98ad",
+        "scene": "哈珀的脚步在潮湿的水泥地上回响，像微弱的心跳声在雨夜中挣扎。他一步步逼近那瘦削的身影，手指悄然滑向风衣内侧的枪套，眼神如鹰般锐利地捕捉着每一丝细节。那人站在雨幕之中，肩膀微微颤抖，像风中的枯叶。他的脸隐没在阴影里，只有一双泛着不安的眼睛在黑暗中闪烁。“克莱尔在哪？”哈珀低声问道，语气里透着压抑的怒火与焦虑。\n\n瘦削身影微微后退一步，声音比雨声更低沉，“你该小心点——有人在盯着你。”话音未落，一声微弱却尖锐的金属摩擦声从停车场深处传来。哈珀猛然转头，视线穿过雨夜的迷雾，却只能捕捉到一个模糊的轮廓在迅速消失。雨水冲刷着地面，似乎掩埋了所有线索，只有那急促的心跳与潜伏的危险在空气中残留。哈珀回过头，瘦削身影已经消失在夜色里，只留下一张湿透的便签纸，在地面上轻轻颤动，上面写着一个地址——“猫眼酒吧”。",
+        "node_type": "scene",
+        "events": [
+          {
+            "id": "b99c653d-f01a-41af-954b-f21d17e24efb",
+            "speaker": "路人甲",
+            "content": "听说了吗？昨晚在隔壁街区，有人看到警车停了一整夜，像是出了什么大事。",
+            "timestamp": 1,
+            "event_type": "dialogue",
+            "description": "",
+            "actions": [],
+            "metadata": {}
+          },
+          {
+            "id": "5b9ab5a9-525c-47d8-9c4f-bd8a1333c33a",
+            "speaker": "",
+            "content": "一只流浪猫从停车场的角落窜过，它的毛发湿透，尾巴拖着污泥，在夜色里发出细微的抓地声，随即钻进一辆废弃小轿车底下，消失不见。",
+            "timestamp": 2,
+            "event_type": "narration",
+            "description": "",
+            "actions": [],
+            "metadata": {}
+          },
+          {
+            "id": "07629dd1-3ad7-4b7f-bfdf-ed5c4e6ccc1c",
+            "speaker": "",
+            "content": "远处街道的霓虹灯闪烁不定，红色与绿色交替着像某种心跳的信号，而一盏路灯忽然啪地熄灭，留下黑暗吞噬那片街角。",
+            "timestamp": 3,
+            "event_type": "narration",
+            "description": "",
+            "actions": [],
+            "metadata": {}
+          },
+          {
+            "id": "57b918e4-d65b-4fc4-84a2-16d3316bd29d",
+            "speaker": "路人乙",
+            "content": "我跟你说，这地方最近越来越不安全了。昨天晚上我听到枪声——几声，短促的，像是有人在警告什么。",
+            "timestamp": 4,
+            "event_type": "dialogue",
+            "description": "",
+            "actions": [],
+            "metadata": {}
+          }
+        ],
+        "outgoing_actions": [
+          {
+            "action": {
+              "id": "action_1",
+              "description": "哈珀决定前往猫眼酒吧，试图找到便签纸上的线索并寻找酒吧老板，询问是否见过瘦削身影或克莱尔。",
+              "is_key_action": true,
+              "metadata": {
+                "navigation": "continue",
+                "response": "",
+                "effects": {
+                  "world_state_changes": "哈珀进入猫眼酒吧，酒吧老板表现出微妙的紧张，酒吧内的气氛变得更加诡异，线索可能隐藏在老板的言辞或酒吧的某个角落。"
+                }
+              }
+            },
+            "target_node_id": null,
+            "target_event": null
+          },
+          {
+            "action": {
+              "id": "action_2",
+              "description": "哈珀决定追赶停车场深处消失的模糊轮廓，试图揭开跟踪者的身份。",
+              "is_key_action": true,
+              "metadata": {
+                "navigation": "continue",
+                "response": "",
+                "effects": {
+                  "world_state_changes": "哈珀进入更深的停车场区域，发现一处散落的物品可能属于跟踪者，同时感到危险迅速逼近。"
+                }
+              }
+            },
+            "target_node_id": null,
+            "target_event": null
+          },
+          {
+            "action": {
+              "id": "action_3",
+              "description": "哈珀停留在原地，对便签纸进行仔细检查，试图从纸张的材质或笔迹中找出更多线索。",
+              "is_key_action": false,
+              "metadata": {
+                "navigation": "stay",
+                "response": "便签纸上的地址字迹潦草，笔迹似乎带有某种急切的情绪，纸张的边缘残留着雨水浸泡的痕迹。",
+                "effects": {
+                  "world_state_changes": "哈珀获得细微的线索，可能有助于确认神秘来电者的身份，但仍然需要进一步验证。"
+                }
+              }
+            },
+            "target_node_id": null,
+            "target_event": null
+          },
+          {
+            "action": {
+              "id": "action_4",
+              "description": "哈珀停留在原地，拨打便签纸上的地址附近的酒吧电话，试图确认是否有人在等待他。",
+              "is_key_action": false,
+              "metadata": {
+                "navigation": "stay",
+                "response": "电话接通后，传来短暂的沉默，随后一个陌生声音低声询问：“是哈珀吗？”",
+                "effects": {
+                  "world_state_changes": "哈珀与可能的线索建立了联系，但对方的态度模糊，进一步加深了悬疑氛围。"
+                }
+              }
+            },
+            "target_node_id": null,
+            "target_event": null
+          }
+        ],
+        "metadata": {
+          "world_state": {
+            "time": "午夜时分，雨势逐渐减弱，空气中弥漫着潮湿的寒意。",
+            "location": "废弃停车场，周围铁网生锈，墙壁破败，地面布满积水，远处的黑暗深处隐约传来微弱的声音。",
+            "characters": {
+              "哈珀": "警觉且焦虑，手指始终在风衣内侧枪套附近，试图寻找关于克莱尔失踪案的线索。",
+              "瘦削身影": "神秘且不安，透露模糊信息后迅速消失，留下一个线索地址作为指引。"
+            },
+            "key_facts": [
+              "克莱尔失踪案可能与猫眼酒吧有关。",
+              "停车场深处出现了未知的活动，可能存在潜在威胁。",
+              "瘦削身影警告哈珀有人正在监视他。"
+            ],
+            "story_variable_1": "猫眼酒吧地址：位于旧城区边缘，曾是地下交易的据点。",
+            "action_history": [
+              {
+                "type": "continue_action",
+                "action": "匆忙离开酒吧，与神秘来电者约定的地点见面。",
+                "effects": "主人公进入一个未知的街角，发现线索可能隐藏在危机中，同时天气持续恶劣，增加紧张氛围。"
+              },
+              {
+                "type": "continue_action",
+                "action": "哈珀决定直接走向瘦削身影，尝试逼问对方有关克莱尔失踪案的线索。",
+                "effects": "瘦削身影透露出部分重要信息，但同时警告哈珀他正在被跟踪，局势变得更加危险。"
+              }
+            ],
+            "weather": "雨势减弱但仍有零星小雨，夜雾浓重，能见度低。",
+            "threat_level": "高，未知势力正在介入调查，潜在危险增多。"
+          }
+        }
+      }
+    }
+  },
+  "connections": [
+    {
+      "from_node_id": "aa8fa799-253d-4f01-9489-67d2cc62a6f4",
+      "to_node_id": "31e5e8a6-d90f-4be3-b06f-31e1c24b3020",
+      "action_id": "action_1",
+      "action_description": "匆忙离开酒吧，与神秘来电者约定的地点见面。"
+    },
+    {
+      "from_node_id": "aa8fa799-253d-4f01-9489-67d2cc62a6f4",
+      "to_node_id": "8df3c67f-cd72-4b99-8e95-e79c1eb7d74a",
+      "action_id": "action_4",
+      "action_description": "带着波本酒离开酒吧，回到自己的办公室整理思路，尝试解读来电者提供的信息。"
+    },
+    {
+      "from_node_id": "31e5e8a6-d90f-4be3-b06f-31e1c24b3020",
+      "to_node_id": "b06606d4-eb29-40ec-8b98-4dc6ccbe98ad",
+      "action_id": "action_1",
+      "action_description": "哈珀决定直接走向瘦削身影，尝试逼问对方有关克莱尔失踪案的线索。"
+    }
+  ],
+  "root_node_id": "aa8fa799-253d-4f01-9489-67d2cc62a6f4"
+}
