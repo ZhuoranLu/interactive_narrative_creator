@@ -1,11 +1,35 @@
-:root{
+:root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  /* Macaron Color Scheme */
+  --primary-bg: #F8FAFC;
+  --secondary-bg: #EDF2F7;
+  --card-bg: #FFFFFF;
+  --text-primary: #2D3748;
+  --text-secondary: #4A5568;
+  --text-muted: #718096;
+  --border-light: #E8E8E8;
+  --border-medium: #CBD5E0;
+  
+  /* Macaron Colors */
+  --macaron-green: #68D391;
+  --macaron-green-hover: #9AE6B4;
+  --macaron-blue: #63B3ED;
+  --macaron-blue-hover: #90CDF4;
+  --macaron-purple: #B794F6;
+  --macaron-purple-hover: #D6BCFA;
+  --macaron-pink: #F687B3;
+  --macaron-pink-hover: #FBB6CE;
+  --macaron-orange: #F6AD55;
+  --macaron-orange-hover: #FBD38D;
+  --macaron-red: #F56565;
+  --macaron-red-hover: #FEB2B2;
+
+  color-scheme: light;
+  color: var(--text-primary);
+  background-color: var(--primary-bg);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -13,67 +37,134 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+body {
+  margin: 0;
+  background: linear-gradient(135deg, var(--primary-bg) 0%, var(--secondary-bg) 100%);
+  min-height: 100vh;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 [data-scope="dialog"] {
-  background: #1a1a1a !important;
-  --bg-currentcolor: #1a1a1a !important;
+  background: var(--card-bg) !important;
+  --bg-currentcolor: var(--card-bg) !important;
 }
 
 button {
-  background-color: #1a1a1a;
-  color: #ffffff;
+  background: linear-gradient(135deg, var(--macaron-blue) 0%, var(--macaron-blue-hover) 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(99, 179, 237, 0.3);
 }
 
-input::placeholder {
-  color: #888888;
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(99, 179, 237, 0.4);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+input, textarea {
+  background: var(--card-bg);
+  border: 2px solid var(--border-light);
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+input:focus, textarea:focus {
+  outline: none;
+  border-color: var(--macaron-blue);
+  box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.1);
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--text-muted);
   opacity: 1;
 }
 
 /* For Firefox */
-input::-moz-placeholder {
-  color: #888888;
+input::-moz-placeholder, textarea::-moz-placeholder {
+  color: var(--text-muted);
   opacity: 1;
 }
 
 /* For Chrome/Safari/Opera */
-input::-webkit-input-placeholder {
-  color: #888888;
+input::-webkit-input-placeholder, textarea::-webkit-input-placeholder {
+  color: var(--text-muted);
 }
 
 /* For Internet Explorer */
-input:-ms-input-placeholder {
-  color: #888888;
+input:-ms-input-placeholder, textarea:-ms-input-placeholder {
+  color: var(--text-muted);
 }
-
 
 a {
   font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
+  color: var(--macaron-blue);
+  text-decoration: none;
+  transition: color 0.2s ease;
 }
+
 a:hover {
-  color: #535bf2;
+  color: var(--macaron-purple);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 h1 {
-  font-size: 3.2em;
+  font-size: 2.5em;
   line-height: 1.1;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
-button:hover {
-  border-color: #646cff;
+
+::-webkit-scrollbar-track {
+  background: var(--border-light);
+  border-radius: 4px;
 }
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-medium);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Cards and containers */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  transform: translateY(-2px);
 }

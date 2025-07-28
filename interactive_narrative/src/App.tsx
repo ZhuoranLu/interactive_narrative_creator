@@ -48,14 +48,8 @@ function App() {
   if (isLoading) {
     return (
       <div className="App">
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          height: '100vh',
-          color: '#ffffff',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-        }}>
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
           <div>正在加载...</div>
         </div>
       </div>

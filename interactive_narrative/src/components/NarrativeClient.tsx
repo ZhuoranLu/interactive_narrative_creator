@@ -243,48 +243,174 @@ const NarrativeClient = () => {
   };
 
   return (
-    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-      <h2>Interactive Narrative Creator</h2>
+    <div style={{ 
+      padding: '24px', 
+      maxWidth: '1200px', 
+      margin: '0 auto',
+      background: 'var(--card-bg)',
+      borderRadius: '16px',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+      border: '1px solid var(--border-light)'
+    }}>
+      <h2 style={{ 
+        color: 'var(--text-primary)', 
+        marginBottom: '24px',
+        fontWeight: '700',
+        background: 'linear-gradient(135deg, var(--macaron-blue) 0%, var(--macaron-purple) 100%)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        backgroundClip: 'text'
+      }}>
+        Interactive Narrative Creator
+      </h2>
       
-      <div style={{ marginBottom: '20px' }}>
+      <div style={{ marginBottom: '24px', display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
         <button 
           onClick={() => handleBootstrapStory('若诸葛亮没死，他会如何改变三国的历史')} 
           disabled={loading}
+          style={{
+            background: loading ? 'var(--border-medium)' : 'linear-gradient(135deg, var(--macaron-green) 0%, var(--macaron-green-hover) 100%)',
+            color: 'white',
+            border: 'none',
+            padding: '12px 20px',
+            borderRadius: '12px',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            fontSize: '14px',
+            fontWeight: '600',
+            boxShadow: loading ? 'none' : '0 4px 12px rgba(104, 211, 145, 0.3)',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            if (!loading) {
+              (e.target as HTMLElement).style.transform = 'translateY(-2px)';
+              (e.target as HTMLElement).style.boxShadow = '0 6px 16px rgba(104, 211, 145, 0.4)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!loading) {
+              (e.target as HTMLElement).style.transform = 'translateY(0)';
+              (e.target as HTMLElement).style.boxShadow = '0 4px 12px rgba(104, 211, 145, 0.3)';
+            }
+          }}
         >
           Bootstrap Story
         </button>
         <button 
           onClick={() => handleContinueStory(null, null, {})} 
           disabled={loading}
-          style={{ marginLeft: '10px' }}
+          style={{
+            background: loading ? 'var(--border-medium)' : 'linear-gradient(135deg, var(--macaron-blue) 0%, var(--macaron-blue-hover) 100%)',
+            color: 'white',
+            border: 'none',
+            padding: '12px 20px',
+            borderRadius: '12px',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            fontSize: '14px',
+            fontWeight: '600',
+            boxShadow: loading ? 'none' : '0 4px 12px rgba(99, 179, 237, 0.3)',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            if (!loading) {
+              (e.target as HTMLElement).style.transform = 'translateY(-2px)';
+              (e.target as HTMLElement).style.boxShadow = '0 6px 16px rgba(99, 179, 237, 0.4)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!loading) {
+              (e.target as HTMLElement).style.transform = 'translateY(0)';
+              (e.target as HTMLElement).style.boxShadow = '0 4px 12px rgba(99, 179, 237, 0.3)';
+            }
+          }}
         >
           Continue Story
         </button>
         <button 
           onClick={() => handleApplyAction(null, 'test_action', {})} 
           disabled={loading}
-          style={{ marginLeft: '10px' }}
+          style={{
+            background: loading ? 'var(--border-medium)' : 'linear-gradient(135deg, var(--macaron-purple) 0%, var(--macaron-purple-hover) 100%)',
+            color: 'white',
+            border: 'none',
+            padding: '12px 20px',
+            borderRadius: '12px',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            fontSize: '14px',
+            fontWeight: '600',
+            boxShadow: loading ? 'none' : '0 4px 12px rgba(183, 148, 246, 0.3)',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            if (!loading) {
+              (e.target as HTMLElement).style.transform = 'translateY(-2px)';
+              (e.target as HTMLElement).style.boxShadow = '0 6px 16px rgba(183, 148, 246, 0.4)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!loading) {
+              (e.target as HTMLElement).style.transform = 'translateY(0)';
+              (e.target as HTMLElement).style.boxShadow = '0 4px 12px rgba(183, 148, 246, 0.3)';
+            }
+          }}
         >
           Apply Action
         </button>
         <button 
           onClick={() => handleRegenerateContent(null, 'scene', 'make it more dramatic')} 
           disabled={loading}
-          style={{ marginLeft: '10px' }}
+          style={{
+            background: loading ? 'var(--border-medium)' : 'linear-gradient(135deg, var(--macaron-orange) 0%, var(--macaron-orange-hover) 100%)',
+            color: 'white',
+            border: 'none',
+            padding: '12px 20px',
+            borderRadius: '12px',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            fontSize: '14px',
+            fontWeight: '600',
+            boxShadow: loading ? 'none' : '0 4px 12px rgba(246, 173, 85, 0.3)',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            if (!loading) {
+              (e.target as HTMLElement).style.transform = 'translateY(-2px)';
+              (e.target as HTMLElement).style.boxShadow = '0 6px 16px rgba(246, 173, 85, 0.4)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!loading) {
+              (e.target as HTMLElement).style.transform = 'translateY(0)';
+              (e.target as HTMLElement).style.boxShadow = '0 4px 12px rgba(246, 173, 85, 0.3)';
+            }
+          }}
         >
           Regenerate Scene
         </button>
         <button 
           onClick={loadDefaultStoryExample}
           disabled={loadingStory}
-          style={{ 
-            marginLeft: '10px',
-            backgroundColor: '#28a745',
+          style={{
+            background: loadingStory ? 'var(--border-medium)' : 'linear-gradient(135deg, var(--macaron-green) 0%, var(--macaron-green-hover) 100%)',
             color: 'white',
             border: 'none',
-            padding: '8px 16px',
-            borderRadius: '4px',
-            cursor: loadingStory ? 'not-allowed' : 'pointer'
+            padding: '12px 20px',
+            borderRadius: '12px',
+            cursor: loadingStory ? 'not-allowed' : 'pointer',
+            fontSize: '14px',
+            fontWeight: '600',
+            boxShadow: loadingStory ? 'none' : '0 4px 12px rgba(104, 211, 145, 0.3)',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            if (!loadingStory) {
+              (e.target as HTMLElement).style.transform = 'translateY(-2px)';
+              (e.target as HTMLElement).style.boxShadow = '0 6px 16px rgba(104, 211, 145, 0.4)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!loadingStory) {
+              (e.target as HTMLElement).style.transform = 'translateY(0)';
+              (e.target as HTMLElement).style.boxShadow = '0 4px 12px rgba(104, 211, 145, 0.3)';
+            }
           }}
         >
           {loadingStory ? 'Loading...' : 'Load Default Example'}
@@ -292,14 +418,29 @@ const NarrativeClient = () => {
         <button 
           onClick={() => setShowModal(true)}
           disabled={loadingStory}
-          style={{ 
-            marginLeft: '10px',
-            backgroundColor: '#007bff',
+          style={{
+            background: loadingStory ? 'var(--border-medium)' : 'linear-gradient(135deg, var(--macaron-blue) 0%, var(--macaron-blue-hover) 100%)',
             color: 'white',
             border: 'none',
-            padding: '8px 16px',
-            borderRadius: '4px',
-            cursor: loadingStory ? 'not-allowed' : 'pointer'
+            padding: '12px 20px',
+            borderRadius: '12px',
+            cursor: loadingStory ? 'not-allowed' : 'pointer',
+            fontSize: '14px',
+            fontWeight: '600',
+            boxShadow: loadingStory ? 'none' : '0 4px 12px rgba(99, 179, 237, 0.3)',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            if (!loadingStory) {
+              (e.target as HTMLElement).style.transform = 'translateY(-2px)';
+              (e.target as HTMLElement).style.boxShadow = '0 6px 16px rgba(99, 179, 237, 0.4)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!loadingStory) {
+              (e.target as HTMLElement).style.transform = 'translateY(0)';
+              (e.target as HTMLElement).style.boxShadow = '0 4px 12px rgba(99, 179, 237, 0.3)';
+            }
           }}
         >
           Load My Stories
@@ -337,17 +478,31 @@ const NarrativeClient = () => {
               }
             }}
             disabled={loadingStory}
-            style={{ 
-              marginLeft: '10px',
-              backgroundColor: '#FF6B35',
+            style={{
+              background: loadingStory ? 'var(--border-medium)' : 'linear-gradient(135deg, var(--macaron-red) 0%, var(--macaron-red-hover) 100%)',
               color: 'white',
               border: 'none',
-              padding: '8px 16px',
-              borderRadius: '4px',
+              padding: '12px 20px',
+              borderRadius: '12px',
               cursor: loadingStory ? 'not-allowed' : 'pointer',
-              fontWeight: 'bold'
+              fontSize: '14px',
+              fontWeight: '600',
+              boxShadow: loadingStory ? 'none' : '0 4px 12px rgba(245, 101, 101, 0.3)',
+              transition: 'all 0.2s ease'
             }}
             title="回滚到上一个编辑状态"
+            onMouseEnter={(e) => {
+              if (!loadingStory) {
+                (e.target as HTMLElement).style.transform = 'translateY(-2px)';
+                (e.target as HTMLElement).style.boxShadow = '0 6px 16px rgba(245, 101, 101, 0.4)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!loadingStory) {
+                (e.target as HTMLElement).style.transform = 'translateY(0)';
+                (e.target as HTMLElement).style.boxShadow = '0 4px 12px rgba(245, 101, 101, 0.3)';
+              }
+            }}
           >
             🔄 撤销上一步
           </button>
@@ -357,20 +512,21 @@ const NarrativeClient = () => {
       {/* Story Tree Visualization */}
       {storyTree && (
         <div style={{ marginBottom: '30px' }}>
-          <h3>Story Tree Visualization</h3>
+          <h3 style={{ color: 'var(--text-primary)', fontWeight: '600' }}>Story Tree Visualization</h3>
           
           {/* Help info for rollback */}
           {currentProjectId && (
             <div style={{ 
-              background: '#e3f2fd', 
-              border: '1px solid #2196f3', 
-              borderRadius: '4px', 
-              padding: '10px', 
-              marginBottom: '15px',
-              fontSize: '14px' 
+              background: 'linear-gradient(135deg, var(--macaron-blue-hover) 0%, rgba(144, 205, 244, 0.1) 100%)', 
+              border: '1px solid var(--macaron-blue)', 
+              borderRadius: '12px', 
+              padding: '16px', 
+              marginBottom: '20px',
+              fontSize: '14px',
+              color: 'var(--text-primary)'
             }}>
-              <strong>💡 编辑历史功能：</strong>
-              <ul style={{ margin: '5px 0', paddingLeft: '20px' }}>
+              <strong style={{ color: 'var(--macaron-blue)' }}>💡 编辑历史功能：</strong>
+              <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
                 <li><strong>🔄 撤销上一步</strong> - 快速回滚到上一个编辑状态</li>
                 <li><strong>📚 编辑历史</strong> - 查看完整编辑历史，可回滚到任意状态（最多5个历史记录）</li>
                 <li><strong>自动保存</strong> - 每次编辑操作前会自动创建历史快照</li>
@@ -388,65 +544,193 @@ const NarrativeClient = () => {
         </div>
       )}
 
-      <div style={{ marginBottom: '20px', padding: '15px', border: '1px solid #ddd', borderRadius: '4px' }}>
-        <h3>Create Your Story</h3>
+      <div style={{ 
+        marginBottom: '24px', 
+        padding: '20px', 
+        border: '1px solid var(--border-light)', 
+        borderRadius: '16px',
+        background: 'var(--card-bg)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+      }}>
+        <h3 style={{ 
+          color: 'var(--text-primary)', 
+          fontWeight: '600', 
+          marginBottom: '16px' 
+        }}>
+          Create Your Story
+        </h3>
         <textarea 
           value={userInput}
           onChange={(e) => setUserInput(e.target.value)}
           placeholder="Enter your story idea or prompt..."
           style={{ 
             width: '100%', 
-            height: '80px', 
-            padding: '10px', 
-            borderRadius: '4px', 
-            border: '1px solid #ccc',
-            resize: 'vertical'
+            height: '100px', 
+            padding: '16px', 
+            borderRadius: '12px', 
+            border: '2px solid var(--border-light)',
+            resize: 'vertical',
+            fontSize: '14px',
+            fontFamily: 'Inter, system-ui, sans-serif',
+            background: 'var(--card-bg)',
+            color: 'var(--text-primary)',
+            transition: 'all 0.2s ease'
+          }}
+          onFocus={(e) => {
+            (e.target as HTMLElement).style.borderColor = 'var(--macaron-blue)';
+            (e.target as HTMLElement).style.boxShadow = '0 0 0 3px rgba(99, 179, 237, 0.1)';
+          }}
+          onBlur={(e) => {
+            (e.target as HTMLElement).style.borderColor = 'var(--border-light)';
+            (e.target as HTMLElement).style.boxShadow = 'none';
           }}
         />
         <button 
           onClick={() => handleBootstrapStory(userInput)}
           disabled={loading || !userInput.trim()}
           style={{ 
-            marginTop: '10px', 
-            padding: '8px 16px', 
-            backgroundColor: '#007bff', 
+            marginTop: '16px', 
+            padding: '12px 24px', 
+            background: (loading || !userInput.trim()) 
+              ? 'var(--border-medium)' 
+              : 'linear-gradient(135deg, var(--macaron-blue) 0%, var(--macaron-blue-hover) 100%)', 
             color: 'white', 
             border: 'none', 
-            borderRadius: '4px',
-            cursor: loading || !userInput.trim() ? 'not-allowed' : 'pointer'
+            borderRadius: '12px',
+            cursor: (loading || !userInput.trim()) ? 'not-allowed' : 'pointer',
+            fontSize: '14px',
+            fontWeight: '600',
+            boxShadow: (loading || !userInput.trim()) 
+              ? 'none' 
+              : '0 4px 12px rgba(99, 179, 237, 0.3)',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            if (!loading && userInput.trim()) {
+              (e.target as HTMLElement).style.transform = 'translateY(-2px)';
+              (e.target as HTMLElement).style.boxShadow = '0 6px 16px rgba(99, 179, 237, 0.4)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!loading && userInput.trim()) {
+              (e.target as HTMLElement).style.transform = 'translateY(0)';
+              (e.target as HTMLElement).style.boxShadow = '0 4px 12px rgba(99, 179, 237, 0.3)';
+            }
           }}
         >
           Start Story
         </button>
       </div>
 
-      {loading && <p>Loading...</p>}
+      {loading && (
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          padding: '20px',
+          background: 'linear-gradient(135deg, var(--macaron-blue-hover) 0%, rgba(144, 205, 244, 0.1) 100%)',
+          borderRadius: '12px',
+          border: '1px solid var(--macaron-blue)',
+          marginBottom: '20px'
+        }}>
+          <div style={{ 
+            width: '20px', 
+            height: '20px', 
+            border: '2px solid var(--border-light)',
+            borderTop: '2px solid var(--macaron-blue)',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            marginRight: '12px'
+          }}></div>
+          <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>Loading...</span>
+        </div>
+      )}
       
       {error && (
-        <div style={{ color: 'red', padding: '10px', border: '1px solid red', borderRadius: '4px' }}>
-          Error: {error}
+        <div style={{ 
+          color: 'white', 
+          padding: '16px 20px', 
+          border: '1px solid var(--macaron-red)', 
+          borderRadius: '12px',
+          marginBottom: '20px',
+          background: 'linear-gradient(135deg, var(--macaron-red) 0%, var(--macaron-red-hover) 100%)',
+          boxShadow: '0 4px 12px rgba(245, 101, 101, 0.3)',
+          fontWeight: '500'
+        }}>
+          <strong>Error:</strong> {error}
         </div>
       )}
       
       {response && (
         <div style={{ 
-          padding: '15px', 
-          border: '1px solid #ccc', 
-          borderRadius: '4px', 
-          backgroundColor: '#f9f9f9',
-          marginTop: '20px'
+          padding: '20px', 
+          border: '1px solid var(--border-light)', 
+          borderRadius: '16px', 
+          background: 'var(--card-bg)',
+          marginTop: '24px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
         }}>
-          <h3>Response:</h3>
-          <pre style={{ whiteSpace: 'pre-wrap' }}>
+          <h3 style={{ 
+            color: 'var(--text-primary)', 
+            fontWeight: '600', 
+            marginBottom: '16px' 
+          }}>
+            Response:
+          </h3>
+          <pre style={{ 
+            whiteSpace: 'pre-wrap',
+            background: 'var(--secondary-bg)',
+            padding: '16px',
+            borderRadius: '12px',
+            border: '1px solid var(--border-light)',
+            fontSize: '13px',
+            color: 'var(--text-primary)',
+            fontFamily: 'JetBrains Mono, Consolas, Monaco, monospace',
+            overflow: 'auto'
+          }}>
             {JSON.stringify(response, null, 2)}
           </pre>
         </div>
       )}
 
-      <div style={{ marginTop: '30px', padding: '15px', backgroundColor: '#f0f0f0', borderRadius: '4px' }}>
-        <h4>API Usage:</h4>
-        <p>Use <code>callNarrativeAPI(payload)</code> with structured payload:</p>
-        <pre style={{ fontSize: '12px' }}>
+      <div style={{ 
+        marginTop: '32px', 
+        padding: '20px', 
+        background: 'var(--secondary-bg)', 
+        borderRadius: '16px',
+        border: '1px solid var(--border-light)'
+      }}>
+        <h4 style={{ 
+          color: 'var(--text-primary)', 
+          fontWeight: '600', 
+          marginBottom: '12px' 
+        }}>
+          API Usage:
+        </h4>
+        <p style={{ 
+          color: 'var(--text-secondary)', 
+          marginBottom: '12px',
+          lineHeight: '1.6' 
+        }}>
+          Use <code style={{ 
+            background: 'var(--card-bg)', 
+            padding: '2px 6px', 
+            borderRadius: '4px',
+            border: '1px solid var(--border-light)',
+            color: 'var(--macaron-purple)',
+            fontWeight: '600'
+          }}>callNarrativeAPI(payload)</code> with structured payload:
+        </p>
+        <pre style={{ 
+          fontSize: '12px',
+          background: 'var(--card-bg)',
+          padding: '16px',
+          borderRadius: '12px',
+          border: '1px solid var(--border-light)',
+          color: 'var(--text-primary)',
+          fontFamily: 'JetBrains Mono, Consolas, Monaco, monospace',
+          overflow: 'auto'
+        }}>
 {`{
   request_type: "bootstrap_node" | "generate_next_node" | "apply_action" | "regenerate_part",
   context: { /* specific context for the request */ },

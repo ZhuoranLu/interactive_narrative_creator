@@ -1,7 +1,7 @@
 .settings-page {
   min-height: 100vh;
-  background-color: #282c34;
-  color: white;
+  background: linear-gradient(135deg, var(--primary-bg) 0%, var(--secondary-bg) 100%);
+  color: var(--text-primary);
 }
 
 .settings-content {
@@ -11,26 +11,31 @@
 }
 
 .settings-card {
-  background: rgba(26, 26, 26, 0.95);
-  border-radius: 12px;
+  background: var(--card-bg);
+  border-radius: 20px;
   padding: 3rem;
-  max-width: 600px;
+  max-width: 650px;
   width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-light);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.08);
 }
 
 .settings-card h2 {
-  color: #667eea;
-  font-size: 2rem;
-  margin-bottom: 2rem;
+  color: var(--text-primary);
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin-bottom: 2.5rem;
   text-align: center;
+  background: linear-gradient(135deg, var(--macaron-blue) 0%, var(--macaron-purple) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .settings-section {
-  margin-bottom: 2rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 2.5rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .settings-section:last-of-type {
@@ -39,13 +44,14 @@
 }
 
 .settings-section h3 {
-  color: #ffffff;
-  font-size: 1.3rem;
-  margin-bottom: 1rem;
+  color: var(--text-primary);
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 1.25rem;
 }
 
 .setting-item {
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .setting-label {
@@ -53,17 +59,21 @@
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
-  padding: 0.75rem;
-  border-radius: 8px;
-  transition: background-color 0.3s ease;
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  border: 1px solid var(--border-light);
 }
 
 .setting-label:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  background: linear-gradient(135deg, var(--macaron-blue-hover) 0%, rgba(144, 205, 244, 0.1) 100%);
+  border-color: var(--macaron-blue);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(99, 179, 237, 0.15);
 }
 
 .setting-text {
-  color: #b0b0b0;
+  color: var(--text-primary);
   font-size: 1rem;
   font-weight: 500;
 }

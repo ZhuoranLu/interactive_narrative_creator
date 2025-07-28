@@ -118,12 +118,12 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
 
   const getOperationColor = (operationType: string) => {
     switch (operationType) {
-      case 'edit_scene': return '#2196F3';
-      case 'add_event': case 'add_action': return '#4CAF50';
-      case 'delete_event': case 'delete_action': return '#F44336';
-      case 'update_event': case 'update_action': return '#FF9800';
-      case 'rollback_point': return '#9C27B0';
-      default: return '#666';
+      case 'edit_scene': return 'var(--macaron-blue)';
+      case 'add_event': case 'add_action': return 'var(--macaron-green)';
+      case 'delete_event': case 'delete_action': return 'var(--macaron-red)';
+      case 'update_event': case 'update_action': return 'var(--macaron-orange)';
+      case 'rollback_point': return 'var(--macaron-purple)';
+      default: return 'var(--text-muted)';
     }
   };
 
@@ -139,46 +139,65 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
     <div
       style={{
         position: 'fixed',
-        top: '20px',
-        right: '20px',
-        width: '400px',
-        maxHeight: '80vh',
-        backgroundColor: 'white',
-        border: '1px solid #ddd',
-        borderRadius: '8px',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+        top: '24px',
+        right: '24px',
+        width: '420px',
+        maxHeight: '85vh',
+        background: 'var(--card-bg)',
+        border: '1px solid var(--border-light)',
+        borderRadius: '20px',
+        boxShadow: '0 12px 48px rgba(0,0,0,0.15)',
         zIndex: 1000,
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        backdropFilter: 'blur(10px)'
       }}
     >
       {/* Header */}
       <div
         style={{
-          padding: '15px 20px',
-          borderBottom: '1px solid #eee',
+          padding: '20px 24px',
+          borderBottom: '1px solid var(--border-light)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          backgroundColor: '#f8f9fa',
-          borderRadius: '8px 8px 0 0'
+          background: 'linear-gradient(135deg, var(--macaron-blue) 0%, var(--macaron-purple) 100%)',
+          borderRadius: '20px 20px 0 0',
+          color: 'white'
         }}
       >
-        <h3 style={{ margin: 0, color: '#333', fontSize: '16px' }}>
+        <h3 style={{ 
+          margin: 0, 
+          fontSize: '18px', 
+          fontWeight: '700',
+          textShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}>
           📚 编辑历史记录
         </h3>
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
           <button
             onClick={loadHistory}
             disabled={loading}
             style={{
-              background: '#007bff',
+              background: 'rgba(255, 255, 255, 0.2)',
               color: 'white',
               border: 'none',
-              borderRadius: '4px',
-              padding: '5px 10px',
+              borderRadius: '8px',
+              padding: '8px 12px',
               cursor: loading ? 'not-allowed' : 'pointer',
-              fontSize: '12px'
+              fontSize: '12px',
+              fontWeight: '600',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              if (!loading) {
+                (e.target as HTMLElement).style.background = 'rgba(255, 255, 255, 0.3)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!loading) {
+                (e.target as HTMLElement).style.background = 'rgba(255, 255, 255, 0.2)';
+              }
             }}
           >
             {loading ? '🔄' : '🔄'}
@@ -187,13 +206,23 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
             <button
               onClick={onClose}
               style={{
-                background: '#dc3545',
+                background: 'rgba(245, 101, 101, 0.9)',
                 color: 'white',
                 border: 'none',
-                borderRadius: '4px',
-                padding: '5px 10px',
+                borderRadius: '8px',
+                padding: '8px 12px',
                 cursor: 'pointer',
-                fontSize: '12px'
+                fontSize: '12px',
+                fontWeight: '600',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                (e.target as HTMLElement).style.background = 'var(--macaron-red)';
+                (e.target as HTMLElement).style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLElement).style.background = 'rgba(245, 101, 101, 0.9)';
+                (e.target as HTMLElement).style.transform = 'scale(1)';
               }}
             >
               ✕
@@ -203,56 +232,91 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
       </div>
 
       {/* Content */}
-      <div style={{ padding: '15px', flex: 1, overflow: 'auto' }}>
+      <div style={{ 
+        padding: '20px 24px', 
+        flex: 1, 
+        overflow: 'auto',
+        background: 'var(--card-bg)'
+      }}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-            🔄 加载历史记录中...
+          <div style={{ 
+            textAlign: 'center', 
+            padding: '32px 20px', 
+            color: 'var(--text-secondary)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              border: '3px solid var(--border-light)',
+              borderTop: '3px solid var(--macaron-blue)',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }}></div>
+            <span style={{ fontWeight: '500' }}>🔄 加载历史记录中...</span>
           </div>
         ) : history.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+          <div style={{ 
+            textAlign: 'center', 
+            padding: '32px 20px', 
+            color: 'var(--text-secondary)',
+            fontSize: '15px',
+            fontWeight: '500'
+          }}>
             📝 暂无编辑历史记录
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {history.map((entry, index) => (
               <div
                 key={entry.id}
                 style={{
-                  border: '1px solid #eee',
-                  borderRadius: '6px',
-                  padding: '12px',
-                  backgroundColor: index === 0 ? '#f0f8ff' : 'white',
-                  position: 'relative'
+                  border: '2px solid var(--border-light)',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  background: index === 0 
+                    ? 'linear-gradient(135deg, var(--macaron-blue-hover) 0%, rgba(144, 205, 244, 0.1) 100%)'
+                    : 'var(--card-bg)',
+                  position: 'relative',
+                  transition: 'all 0.2s ease',
+                  borderColor: index === 0 ? 'var(--macaron-blue)' : 'var(--border-light)'
                 }}
               >
                 {/* Operation Header */}
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
                   <span
                     style={{
-                      fontSize: '16px',
-                      marginRight: '8px'
+                      fontSize: '18px',
+                      marginRight: '10px'
                     }}
                   >
                     {getOperationIcon(entry.operation_type)}
                   </span>
                   <span
                     style={{
-                      fontWeight: 'bold',
+                      fontWeight: '600',
                       color: getOperationColor(entry.operation_type),
-                      fontSize: '13px'
+                      fontSize: '13px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
                     }}
                   >
-                    {entry.operation_type.replace(/_/g, ' ').toUpperCase()}
+                    {entry.operation_type.replace(/_/g, ' ')}
                   </span>
                   {index === 0 && (
                     <span
                       style={{
-                        background: '#28a745',
+                        background: 'linear-gradient(135deg, var(--macaron-green) 0%, var(--macaron-green-hover) 100%)',
                         color: 'white',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
                         fontSize: '10px',
-                        marginLeft: '10px'
+                        marginLeft: '12px',
+                        fontWeight: '600',
+                        boxShadow: '0 2px 4px rgba(104, 211, 145, 0.3)'
                       }}
                     >
                       当前状态
@@ -263,10 +327,11 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
                 {/* Description */}
                 <div
                   style={{
-                    fontSize: '13px',
-                    color: '#333',
-                    marginBottom: '8px',
-                    lineHeight: '1.4'
+                    fontSize: '14px',
+                    color: 'var(--text-primary)',
+                    marginBottom: '12px',
+                    lineHeight: '1.5',
+                    fontWeight: '500'
                   }}
                 >
                   {entry.operation_description}
@@ -275,14 +340,32 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
                 {/* Metadata */}
                 <div
                   style={{
-                    fontSize: '11px',
-                    color: '#666',
-                    marginBottom: '10px'
+                    fontSize: '12px',
+                    color: 'var(--text-muted)',
+                    marginBottom: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    flexWrap: 'wrap'
                   }}
                 >
-                  {formatDateTime(entry.created_at)}
+                  <span style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '4px',
+                    fontWeight: '500'
+                  }}>
+                    🕒 {formatDateTime(entry.created_at)}
+                  </span>
                   {entry.affected_node_id && (
-                    <span style={{ marginLeft: '10px' }}>
+                    <span style={{ 
+                      background: 'var(--secondary-bg)',
+                      padding: '2px 6px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: '500',
+                      color: 'var(--text-secondary)'
+                    }}>
                       节点: {entry.affected_node_id.substring(0, 8)}...
                     </span>
                   )}
@@ -295,14 +378,33 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
                       onClick={() => handleRollback(entry.id, entry.operation_description)}
                       disabled={rollbackLoading !== null}
                       style={{
-                        background: '#28a745',
+                        background: rollbackLoading !== null 
+                          ? 'var(--border-medium)' 
+                          : 'linear-gradient(135deg, var(--macaron-green) 0%, var(--macaron-green-hover) 100%)',
                         color: 'white',
                         border: 'none',
-                        borderRadius: '4px',
-                        padding: '4px 8px',
+                        borderRadius: '8px',
+                        padding: '6px 12px',
                         fontSize: '11px',
+                        fontWeight: '600',
                         cursor: rollbackLoading !== null ? 'not-allowed' : 'pointer',
-                        opacity: rollbackLoading !== null ? 0.6 : 1
+                        opacity: rollbackLoading !== null ? 0.6 : 1,
+                        boxShadow: rollbackLoading !== null 
+                          ? 'none' 
+                          : '0 2px 8px rgba(104, 211, 145, 0.3)',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (rollbackLoading === null) {
+                          (e.target as HTMLElement).style.transform = 'translateY(-1px)';
+                          (e.target as HTMLElement).style.boxShadow = '0 4px 12px rgba(104, 211, 145, 0.4)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (rollbackLoading === null) {
+                          (e.target as HTMLElement).style.transform = 'translateY(0)';
+                          (e.target as HTMLElement).style.boxShadow = '0 2px 8px rgba(104, 211, 145, 0.3)';
+                        }
                       }}
                     >
                       {rollbackLoading === entry.id ? '🔄 回滚中...' : '🔄 回滚到此'}
@@ -311,14 +413,33 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
                       onClick={() => handleDeleteSnapshot(entry.id, entry.operation_description)}
                       disabled={rollbackLoading !== null}
                       style={{
-                        background: '#dc3545',
+                        background: rollbackLoading !== null 
+                          ? 'var(--border-medium)' 
+                          : 'linear-gradient(135deg, var(--macaron-red) 0%, var(--macaron-red-hover) 100%)',
                         color: 'white',
                         border: 'none',
-                        borderRadius: '4px',
-                        padding: '4px 8px',
+                        borderRadius: '8px',
+                        padding: '6px 12px',
                         fontSize: '11px',
+                        fontWeight: '600',
                         cursor: rollbackLoading !== null ? 'not-allowed' : 'pointer',
-                        opacity: rollbackLoading !== null ? 0.6 : 1
+                        opacity: rollbackLoading !== null ? 0.6 : 1,
+                        boxShadow: rollbackLoading !== null 
+                          ? 'none' 
+                          : '0 2px 8px rgba(245, 101, 101, 0.3)',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (rollbackLoading === null) {
+                          (e.target as HTMLElement).style.transform = 'translateY(-1px)';
+                          (e.target as HTMLElement).style.boxShadow = '0 4px 12px rgba(245, 101, 101, 0.4)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (rollbackLoading === null) {
+                          (e.target as HTMLElement).style.transform = 'translateY(0)';
+                          (e.target as HTMLElement).style.boxShadow = '0 2px 8px rgba(245, 101, 101, 0.3)';
+                        }
                       }}
                     >
                       🗑️ 删除
@@ -330,21 +451,29 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
           </div>
         )}
       </div>
-
-      {/* Footer */}
-      <div
-        style={{
-          padding: '10px 15px',
-          borderTop: '1px solid #eee',
-          backgroundColor: '#f8f9fa',
-          borderRadius: '0 0 8px 8px',
-          fontSize: '11px',
-          color: '#666',
-          textAlign: 'center'
-        }}
-      >
-        💡 最多保存5条历史记录，自动清理旧记录
-      </div>
+      
+      {/* Custom scrollbar styles for the content area */}
+      <style>
+        {`
+          div[style*="overflow: auto"]::-webkit-scrollbar {
+            width: 6px;
+          }
+          
+          div[style*="overflow: auto"]::-webkit-scrollbar-track {
+            background: var(--border-light);
+            border-radius: 3px;
+          }
+          
+          div[style*="overflow: auto"]::-webkit-scrollbar-thumb {
+            background: var(--border-medium);
+            border-radius: 3px;
+          }
+          
+          div[style*="overflow: auto"]::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+          }
+        `}
+      </style>
     </div>
   );
 };

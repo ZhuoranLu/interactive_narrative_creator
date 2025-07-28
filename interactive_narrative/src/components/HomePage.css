@@ -1,17 +1,17 @@
 .home-page {
   min-height: 100vh;
-  background-color: #282c34;
-  color: white;
+  background: linear-gradient(135deg, var(--primary-bg) 0%, var(--secondary-bg) 100%);
+  color: var(--text-primary);
 }
 
 .home-content {
-  padding: 2rem;
+  padding: 2.5rem;
   display: flex;
   justify-content: center;
 }
 
 @media (max-width: 768px) {
   .home-content {
-    padding: 1rem;
+    padding: 1.5rem;
   }
-} 
+}
