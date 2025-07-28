@@ -120,6 +120,142 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [lastMousePosition, setLastMousePosition] = useState({ x: 0, y: 0 });
   
+  // Add state to track if a drag operation just ended
+  const [justEndedDrag, setJustEndedDrag] = useState(false);
+  
+  // Add state to track initial mouse position for drag detection
+  const [dragStartPosition, setDragStartPosition] = useState({ x: 0, y: 0 });
+  const DRAG_THRESHOLD = 5; // Minimum distance to consider it a drag
+  
+  // Add state for zoom functionality
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  
+  // Zoom constants
+  const MIN_ZOOM = 0.3;
+  const MAX_ZOOM = 3;
+  const ZOOM_STEP = 0.2;
+  const BASE_VIEWBOX = { x: 0, y: 0, width: 1200, height: 800 };
+
+  // Add state for zoom controls visibility
+  const [showZoomControls, setShowZoomControls] = useState(false);
+
+  // Add throttling for wheel zoom
+  const [lastWheelTime, setLastWheelTime] = useState(0);
+  const WHEEL_THROTTLE = 100; // Minimum time between wheel events in ms
+
+  // Update viewBox when zoom level changes
+  React.useEffect(() => {
+    const newWidth = BASE_VIEWBOX.width / zoomLevel;
+    const newHeight = BASE_VIEWBOX.height / zoomLevel;
+    const newX = BASE_VIEWBOX.x + panOffset.x + (BASE_VIEWBOX.width - newWidth) / 2;
+    const newY = BASE_VIEWBOX.y + panOffset.y + (BASE_VIEWBOX.height - newHeight) / 2;
+    
+    setViewBox({
+      x: newX,
+      y: newY,
+      width: newWidth,
+      height: newHeight
+    });
+  }, [zoomLevel, panOffset]);
+
+  // Zoom functions
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(MAX_ZOOM, prev + ZOOM_STEP));
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(MIN_ZOOM, prev - ZOOM_STEP));
+  };
+
+  const handleZoomReset = () => {
+    setZoomLevel(1);
+    setPanOffset({ x: 0, y: 0 });
+  };
+
+  // Fit all nodes in view
+  const handleFitToView = () => {
+    if (Object.keys(nodePositions).length === 0) return;
+    
+    const positions = Object.values(nodePositions);
+    const minX = Math.min(...positions.map(p => p.x)) - 50;
+    const maxX = Math.max(...positions.map(p => p.x)) + 200;
+    const minY = Math.min(...positions.map(p => p.y)) - 50;
+    const maxY = Math.max(...positions.map(p => p.y)) + 100;
+    
+    const contentWidth = maxX - minX;
+    const contentHeight = maxY - minY;
+    
+    const scaleX = BASE_VIEWBOX.width / contentWidth;
+    const scaleY = BASE_VIEWBOX.height / contentHeight;
+    const newZoom = Math.min(scaleX, scaleY, MAX_ZOOM) * 0.9; // 90% to add some padding
+    
+    setZoomLevel(newZoom);
+    setPanOffset({
+      x: minX - (BASE_VIEWBOX.width / newZoom - contentWidth) / 2,
+      y: minY - (BASE_VIEWBOX.height / newZoom - contentHeight) / 2
+    });
+  };
+
+  // Handle mouse wheel zoom
+  const handleWheel = (event: React.WheelEvent) => {
+    event.preventDefault();
+    
+    // Throttle wheel events to prevent excessive rapid zooming
+    const currentTime = Date.now();
+    if (currentTime - lastWheelTime < WHEEL_THROTTLE) {
+      return;
+    }
+    setLastWheelTime(currentTime);
+    
+    const delta = -event.deltaY;
+    const zoomDirection = delta > 0 ? 1 : -1;
+    
+    // Reduce sensitivity by using smaller step and adding damping
+    const wheelSensitivity = 0.1; // Reduced from 0.5 to 0.1
+    const dampingFactor = 0.8; // Add damping to make it smoother
+    const adjustedStep = ZOOM_STEP * wheelSensitivity * dampingFactor;
+    
+    const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoomLevel + (zoomDirection * adjustedStep)));
+    
+    if (newZoom !== zoomLevel) {
+      setZoomLevel(newZoom);
+    }
+  };
+
+  // Add keyboard shortcuts for zoom
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Only handle zoom shortcuts when not in input fields
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      
+      if (event.ctrlKey || event.metaKey) {
+        switch (event.key) {
+          case '=':
+          case '+':
+            event.preventDefault();
+            handleZoomIn();
+            break;
+          case '-':
+            event.preventDefault();
+            handleZoomOut();
+            break;
+          case '0':
+            event.preventDefault();
+            handleZoomReset();
+            break;
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [zoomLevel]);
+  
   // Grid settings for snap-to-grid functionality
   const GRID_SIZE = 25; // Grid cell size for snapping
   const SNAP_THRESHOLD = 12; // Distance threshold for snapping
@@ -187,18 +323,24 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({
     event.preventDefault();
     event.stopPropagation();
     
-    const rect = (event.currentTarget as SVGElement).getBoundingClientRect();
     const svgRect = (event.currentTarget.closest('svg') as SVGSVGElement).getBoundingClientRect();
     
+    // Record initial mouse position for drag detection
+    setDragStartPosition({ x: event.clientX, y: event.clientY });
+    
+    // Convert screen coordinates to SVG coordinates
+    const screenX = event.clientX - svgRect.left;
+    const screenY = event.clientY - svgRect.top;
+    const svgX = (screenX / svgRect.width) * viewBox.width + viewBox.x;
+    const svgY = (screenY / svgRect.height) * viewBox.height + viewBox.y;
+    
     const nodePos = getNodePosition(nodeId);
-    const mouseX = event.clientX - svgRect.left;
-    const mouseY = event.clientY - svgRect.top;
     
     setIsDragging(true);
     setDraggedNodeId(nodeId);
     setDragOffset({
-      x: mouseX - nodePos.x,
-      y: mouseY - nodePos.y
+      x: svgX - nodePos.x,
+      y: svgY - nodePos.y
     });
     setLastMousePosition({ x: event.clientX, y: event.clientY });
     
@@ -213,27 +355,31 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({
     event.preventDefault();
     const svgRect = (event.currentTarget as SVGSVGElement).getBoundingClientRect();
     
-    const mouseX = event.clientX - svgRect.left;
-    const mouseY = event.clientY - svgRect.top;
+    // Convert screen coordinates to SVG coordinates
+    const screenX = event.clientX - svgRect.left;
+    const screenY = event.clientY - svgRect.top;
+    const svgX = (screenX / svgRect.width) * viewBox.width + viewBox.x;
+    const svgY = (screenY / svgRect.height) * viewBox.height + viewBox.y;
     
-    let newX = mouseX - dragOffset.x;
-    let newY = mouseY - dragOffset.y;
+    let newX = svgX - dragOffset.x;
+    let newY = svgY - dragOffset.y;
     
     // Apply grid snapping if close enough
     const snappedX = snapToGrid(newX);
     const snappedY = snapToGrid(newY);
     
-    // Use snapped position if within threshold
-    if (Math.abs(newX - snappedX) < SNAP_THRESHOLD) {
+    // Use snapped position if within threshold (adjusted for zoom)
+    const snapThreshold = SNAP_THRESHOLD / zoomLevel;
+    if (Math.abs(newX - snappedX) < snapThreshold) {
       newX = snappedX;
     }
-    if (Math.abs(newY - snappedY) < SNAP_THRESHOLD) {
+    if (Math.abs(newY - snappedY) < snapThreshold) {
       newY = snappedY;
     }
     
     // Constrain to viewBox bounds with some padding
-    const constrainedX = Math.max(50, Math.min(viewBox.width - 200, newX));
-    const constrainedY = Math.max(30, Math.min(viewBox.height - 100, newY));
+    const constrainedX = Math.max(viewBox.x + 50, Math.min(viewBox.x + viewBox.width - 200, newX));
+    const constrainedY = Math.max(viewBox.y + 30, Math.min(viewBox.y + viewBox.height - 100, newY));
     
     setNodePositions(prev => ({
       ...prev,
@@ -246,9 +392,24 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({
   // Handle mouse up (end dragging)
   const handleMouseUp = () => {
     if (isDragging) {
+      // Calculate distance moved to determine if it was actually a drag
+      const deltaX = lastMousePosition.x - dragStartPosition.x;
+      const deltaY = lastMousePosition.y - dragStartPosition.y;
+      const distanceMoved = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      
       setIsDragging(false);
       setDraggedNodeId(null);
       setDragOffset({ x: 0, y: 0 });
+      
+      // Only set justEndedDrag flag if we actually moved the mouse significantly
+      if (distanceMoved > DRAG_THRESHOLD) {
+        setJustEndedDrag(true);
+        
+        // Clear the flag after a short delay to allow click detection
+        setTimeout(() => {
+          setJustEndedDrag(false);
+        }, 100);
+      }
       
       // Reset cursor
       document.body.style.cursor = 'default';
@@ -336,6 +497,7 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({
     if (!isDragging) {
       setContextMenu({ visible: false, x: 0, y: 0, nodeId: null });
       setTooltip({ visible: false, x: 0, y: 0, content: '' });
+      setShowZoomControls(false);
     }
   };
 
@@ -526,6 +688,11 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({
   };
 
   const handleNodeClick = (nodeId: string) => {
+    // Don't open edit dialog if we just finished dragging
+    if (justEndedDrag) {
+      return;
+    }
+    
     const node = nodes[nodeId];
     setSelectedNodeId(nodeId);
     setEditingNode(node);
@@ -995,10 +1162,268 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({
         </div>
       )}
 
+      {/* Zoom Controls - Top Left Corner */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '16px',
+          left: '16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          zIndex: 100
+        }}
+      >
+        {/* Main Magnifying Glass Button */}
+        <button
+          style={{
+            background: showZoomControls 
+              ? 'linear-gradient(135deg, #9AE6B4 0%, #68D391 100%)' 
+              : 'linear-gradient(135deg, #90CDF4 0%, #63B3ED 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '50%',
+            width: '56px',
+            height: '56px',
+            cursor: 'pointer',
+            fontSize: '24px',
+            fontWeight: '600',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: showZoomControls 
+              ? '0 6px 20px rgba(104, 211, 145, 0.4)' 
+              : '0 6px 20px rgba(99, 179, 237, 0.4)',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            backdropFilter: 'blur(10px)',
+            position: 'relative'
+          }}
+          title={showZoomControls ? "关闭缩放控件" : "打开缩放控件"}
+          onMouseEnter={(e) => {
+            (e.target as HTMLElement).style.transform = 'scale(1.05)';
+            (e.target as HTMLElement).style.boxShadow = showZoomControls 
+              ? '0 8px 24px rgba(104, 211, 145, 0.5)' 
+              : '0 8px 24px rgba(99, 179, 237, 0.5)';
+          }}
+          onMouseLeave={(e) => {
+            (e.target as HTMLElement).style.transform = 'scale(1)';
+            (e.target as HTMLElement).style.boxShadow = showZoomControls 
+              ? '0 6px 20px rgba(104, 211, 145, 0.4)' 
+              : '0 6px 20px rgba(99, 179, 237, 0.4)';
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowZoomControls(!showZoomControls);
+          }}
+        >
+          🔍
+          {/* Zoom Level Badge */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '-8px',
+              right: '-8px',
+              background: 'rgba(255, 255, 255, 0.95)',
+              color: '#2D3748',
+              fontSize: '10px',
+              fontWeight: '700',
+              padding: '2px 6px',
+              borderRadius: '12px',
+              minWidth: '24px',
+              textAlign: 'center',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              border: '1px solid rgba(255,255,255,0.8)'
+            }}
+          >
+            {Math.round(zoomLevel * 100)}%
+          </div>
+        </button>
+
+        {/* Expandable Zoom Controls Panel */}
+        {showZoomControls && (
+          <div
+            style={{
+              background: 'rgba(255, 255, 255, 0.95)',
+              borderRadius: '16px',
+              padding: '12px',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+              backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255,255,255,0.8)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              animation: 'slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              transformOrigin: 'top',
+              minWidth: '72px'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Zoom In Button */}
+            <button
+              onClick={handleZoomIn}
+              disabled={zoomLevel >= MAX_ZOOM}
+              style={{
+                background: zoomLevel >= MAX_ZOOM 
+                  ? 'var(--border-medium)' 
+                  : 'linear-gradient(135deg, var(--macaron-blue) 0%, var(--macaron-blue-hover) 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '10px',
+                cursor: zoomLevel >= MAX_ZOOM ? 'not-allowed' : 'pointer',
+                fontSize: '18px',
+                fontWeight: '600',
+                width: '48px',
+                height: '48px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: zoomLevel >= MAX_ZOOM 
+                  ? 'none' 
+                  : '0 4px 12px rgba(99, 179, 237, 0.3)',
+                transition: 'all 0.2s ease'
+              }}
+              title="放大 (Zoom In)"
+              onMouseEnter={(e) => {
+                if (zoomLevel < MAX_ZOOM) {
+                  (e.target as HTMLElement).style.transform = 'scale(1.05)';
+                  (e.target as HTMLElement).style.boxShadow = '0 6px 16px rgba(99, 179, 237, 0.4)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (zoomLevel < MAX_ZOOM) {
+                  (e.target as HTMLElement).style.transform = 'scale(1)';
+                  (e.target as HTMLElement).style.boxShadow = '0 4px 12px rgba(99, 179, 237, 0.3)';
+                }
+              }}
+            >
+              +
+            </button>
+            
+            {/* Zoom Out Button */}
+            <button
+              onClick={handleZoomOut}
+              disabled={zoomLevel <= MIN_ZOOM}
+              style={{
+                background: zoomLevel <= MIN_ZOOM 
+                  ? 'var(--border-medium)' 
+                  : 'linear-gradient(135deg, var(--macaron-orange) 0%, var(--macaron-orange-hover) 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '10px',
+                cursor: zoomLevel <= MIN_ZOOM ? 'not-allowed' : 'pointer',
+                fontSize: '18px',
+                fontWeight: '600',
+                width: '48px',
+                height: '48px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: zoomLevel <= MIN_ZOOM 
+                  ? 'none' 
+                  : '0 4px 12px rgba(246, 173, 85, 0.3)',
+                transition: 'all 0.2s ease'
+              }}
+              title="缩小 (Zoom Out)"
+              onMouseEnter={(e) => {
+                if (zoomLevel > MIN_ZOOM) {
+                  (e.target as HTMLElement).style.transform = 'scale(1.05)';
+                  (e.target as HTMLElement).style.boxShadow = '0 6px 16px rgba(246, 173, 85, 0.4)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (zoomLevel > MIN_ZOOM) {
+                  (e.target as HTMLElement).style.transform = 'scale(1)';
+                  (e.target as HTMLElement).style.boxShadow = '0 4px 12px rgba(246, 173, 85, 0.3)';
+                }
+              }}
+            >
+              −
+            </button>
+            
+            {/* Reset Zoom Button */}
+            <button
+              onClick={handleZoomReset}
+              style={{
+                background: 'linear-gradient(135deg, var(--macaron-green) 0%, var(--macaron-green-hover) 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                width: '48px',
+                height: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(104, 211, 145, 0.3)',
+                transition: 'all 0.2s ease'
+              }}
+              title="重置缩放 (Reset Zoom)"
+              onMouseEnter={(e) => {
+                (e.target as HTMLElement).style.transform = 'scale(1.05)';
+                (e.target as HTMLElement).style.boxShadow = '0 6px 16px rgba(104, 211, 145, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLElement).style.transform = 'scale(1)';
+                (e.target as HTMLElement).style.boxShadow = '0 4px 12px rgba(104, 211, 145, 0.3)';
+              }}
+            >
+              1:1
+            </button>
+            
+            {/* Fit to View Button */}
+            <button
+              onClick={handleFitToView}
+              disabled={Object.keys(nodePositions).length === 0}
+              style={{
+                background: Object.keys(nodePositions).length === 0 
+                  ? 'var(--border-medium)' 
+                  : 'linear-gradient(135deg, var(--macaron-purple) 0%, var(--macaron-purple-hover) 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '8px',
+                cursor: Object.keys(nodePositions).length === 0 ? 'not-allowed' : 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                width: '48px',
+                height: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: Object.keys(nodePositions).length === 0 
+                  ? 'none' 
+                  : '0 4px 12px rgba(183, 148, 246, 0.3)',
+                transition: 'all 0.2s ease'
+              }}
+              title="适应视图 (Fit to View)"
+              onMouseEnter={(e) => {
+                if (Object.keys(nodePositions).length > 0) {
+                  (e.target as HTMLElement).style.transform = 'scale(1.05)';
+                  (e.target as HTMLElement).style.boxShadow = '0 6px 16px rgba(183, 148, 246, 0.4)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (Object.keys(nodePositions).length > 0) {
+                  (e.target as HTMLElement).style.transform = 'scale(1)';
+                  (e.target as HTMLElement).style.boxShadow = '0 4px 12px rgba(183, 148, 246, 0.3)';
+                }
+              }}
+            >
+              📐
+            </button>
+          </div>
+        )}
+      </div>
+
       <svg 
         width="100%" 
         height="100%" 
-        viewBox="0 0 1200 800" 
+        viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
         preserveAspectRatio="xMidYMid meet"
         style={{ 
           background: 'linear-gradient(135deg, #F7FAFC 0%, #EDF2F7 100%)',
@@ -1010,6 +1435,7 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onWheel={handleWheel}
       >
         {/* Add background pattern */}
         <defs>
@@ -1163,7 +1589,7 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({
                 cursor: isDragging && draggedNodeId === nodeId ? 'grabbing' : 'grab',
                 transition: isDragging && draggedNodeId === nodeId ? 'none' : 'all 0.2s ease'
               }} 
-              onClick={() => !isDragging && handleNodeClick(nodeId)}
+              onClick={() => !isDragging && !justEndedDrag && handleNodeClick(nodeId)}
               onContextMenu={(e) => {
                 if (!isDragging) {
                   handleNodeRightClick(e, nodeId);
@@ -1337,6 +1763,66 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({
             .node-idle {
               transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             }
+            
+            /* Zoom-related styles */
+            .zoom-controls {
+              background: rgba(255, 255, 255, 0.95);
+              backdrop-filter: blur(10px);
+              border: 1px solid var(--border-light);
+              box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            }
+            
+            .zoom-button {
+              transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+              user-select: none;
+            }
+            
+            .zoom-button:hover:not(:disabled) {
+              transform: scale(1.05);
+            }
+            
+            .zoom-button:active:not(:disabled) {
+              transform: scale(0.95);
+            }
+            
+            /* Smooth zoom transitions */
+            svg {
+              transition: none; /* Disable transitions during wheel zoom for performance */
+            }
+            
+            /* Cursor styles for different zoom levels */
+            .zoom-cursor-in {
+              cursor: zoom-in;
+            }
+            
+            .zoom-cursor-out {
+              cursor: zoom-out;
+            }
+            
+            /* Zoom controls slide-down animation */
+            @keyframes slideDown {
+              0% {
+                opacity: 0;
+                transform: translateY(-10px) scale(0.95);
+              }
+              100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+              }
+            }
+            
+            /* Magnifying glass button animations */
+            .zoom-magnify-button {
+              transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            
+            .zoom-magnify-button:hover {
+              transform: scale(1.05);
+            }
+            
+            .zoom-magnify-button:active {
+              transform: scale(0.95);
+            }
           `}
         </style>
       </svg>
@@ -1497,246 +1983,623 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({
       {editingNode && (
         <div
           style={{
-            position: 'absolute',
+            position: 'fixed',
             top: '0',
             left: '0',
-            width: '100%',
-            height: '100%',
+            width: '100vw',
+            height: '100vh',
             background: 'rgba(0, 0, 0, 0.7)',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
             zIndex: 1000,
+            padding: '20px',
+            boxSizing: 'border-box'
           }}
           onClick={handleCloseEdit}
         >
           <div
             style={{
-              background: 'white',
-              border: '1px solid #ccc',
-              borderRadius: '8px',
-              padding: '20px',
-              width: '600px',
-              maxHeight: '80vh',
-              overflow: 'auto',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+              background: 'var(--card-bg)',
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: 'min(800px, 95vw)',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid var(--border-light)',
+              overflow: 'hidden'
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ marginTop: '0', marginBottom: '20px', color: '#333' }}>
-              编辑节点 - {editingNode.id}
-              {isLoading && <span style={{ marginLeft: '10px', color: '#666' }}>同步中...</span>}
-            </h3>
-
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Scene:</label>
-              <textarea
-                value={editFormData.scene}
-                onChange={(e) => setEditFormData({ ...editFormData, scene: e.target.value })}
-                style={{
-                  width: '100%',
-                  height: '100px',
-                  padding: '8px',
-                  border: '1px solid #ccc',
-                  borderRadius: '4px',
-                  resize: 'vertical',
-                }}
-                placeholder="Scene description..."
-              />
-            </div>
-
-            <div style={{ marginBottom: '15px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <label style={{ fontWeight: 'bold' }}>Events:</label>
-                <button
-                  onClick={addEvent}
-                  disabled={isLoading}
-                  style={{
-                    background: '#4CAF50',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    padding: '5px 10px',
-                    cursor: isLoading ? 'not-allowed' : 'pointer',
-                    fontSize: '12px',
-                    opacity: isLoading ? 0.6 : 1
-                  }}
-                >
-                  + Add Event
-                </button>
+            {/* Header */}
+            <div
+              style={{
+                padding: '24px 24px 16px 24px',
+                borderBottom: '1px solid var(--border-light)',
+                background: 'linear-gradient(135deg, var(--macaron-blue) 0%, var(--macaron-blue-hover) 100%)',
+                color: 'white',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderRadius: '16px 16px 0 0'
+              }}
+            >
+              <div>
+                <h3 style={{ 
+                  margin: '0', 
+                  fontSize: '20px', 
+                  fontWeight: '700',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                }}>
+                  ✏️ 编辑节点
+                </h3>
+                <p style={{ 
+                  margin: '4px 0 0 0', 
+                  fontSize: '14px', 
+                  opacity: 0.9,
+                  fontWeight: '500'
+                }}>
+                  {editingNode.id}
+                  {isLoading && <span style={{ marginLeft: '10px' }}>⏳ 同步中...</span>}
+                </p>
               </div>
-
-              {editFormData.events.map((event, index) => (
-                <div key={event.id || index} style={{ marginBottom: '10px', padding: '10px', border: '1px solid #eee', borderRadius: '4px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                    <input
-                      type="text"
-                      value={event.speaker}
-                      onChange={(e) => updateEvent(index, 'speaker', e.target.value)}
-                      placeholder="Speaker..."
-                      disabled={isLoading}
-                      style={{
-                        flex: 1,
-                        padding: '6px',
-                        border: '1px solid #ccc',
-                        borderRadius: '4px',
-                        marginRight: '10px',
-                        opacity: isLoading ? 0.6 : 1
-                      }}
-                    />
-                    <input
-                      type="text"
-                      value={event.content}
-                      onChange={(e) => updateEvent(index, 'content', e.target.value)}
-                      placeholder="Content..."
-                      disabled={isLoading}
-                      style={{
-                        flex: 1,
-                        padding: '6px',
-                        border: '1px solid #ccc',
-                        borderRadius: '4px',
-                        marginRight: '10px',
-                        opacity: isLoading ? 0.6 : 1
-                      }}
-                    />
-                    <select
-                      value={event.event_type}
-                      onChange={(e) => updateEvent(index, 'event_type', e.target.value)}
-                      disabled={isLoading}
-                      style={{
-                        padding: '6px',
-                        border: '1px solid #ccc',
-                        borderRadius: '4px',
-                        marginRight: '10px',
-                        opacity: isLoading ? 0.6 : 1
-                      }}
-                    >
-                      <option value="dialogue">Dialogue</option>
-                      <option value="action">Action</option>
-                      <option value="thought">Thought</option>
-                      <option value="description">Description</option>
-                    </select>
-                    <button
-                      onClick={() => removeEvent(index)}
-                      disabled={isLoading}
-                      style={{
-                        background: '#f44336',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        padding: '4px 8px',
-                        cursor: isLoading ? 'not-allowed' : 'pointer',
-                        fontSize: '12px',
-                        opacity: isLoading ? 0.6 : 1
-                      }}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ marginBottom: '15px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <label style={{ fontWeight: 'bold' }}>Actions:</label>
-                <button
-                  onClick={addAction}
-                  disabled={isLoading}
-                  style={{
-                    background: '#2196F3',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    padding: '5px 10px',
-                    cursor: isLoading ? 'not-allowed' : 'pointer',
-                    fontSize: '12px',
-                    opacity: isLoading ? 0.6 : 1
-                  }}
-                >
-                  + Add Action
-                </button>
-              </div>
-
-              {editFormData.actions.map((action, index) => (
-                <div key={action.id} style={{ marginBottom: '10px', padding: '10px', border: '1px solid #eee', borderRadius: '4px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <input
-                      type="text"
-                      value={action.description}
-                      onChange={(e) => updateAction(index, 'description', e.target.value)}
-                      placeholder="Action description..."
-                      disabled={isLoading}
-                      style={{
-                        flex: 1,
-                        padding: '6px',
-                        border: '1px solid #ccc',
-                        borderRadius: '4px',
-                        marginRight: '10px',
-                        opacity: isLoading ? 0.6 : 1
-                      }}
-                    />
-                    <label style={{ marginRight: '10px', fontSize: '12px' }}>
-                      <input
-                        type="checkbox"
-                        checked={action.is_key_action}
-                        onChange={(e) => updateAction(index, 'is_key_action', e.target.checked)}
-                        disabled={isLoading}
-                        style={{ marginRight: '5px' }}
-                      />
-                      Key Action
-                    </label>
-                    <button
-                      onClick={() => removeAction(index)}
-                      disabled={isLoading}
-                      style={{
-                        background: '#f44336',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        padding: '4px 8px',
-                        cursor: isLoading ? 'not-allowed' : 'pointer',
-                        fontSize: '12px',
-                        opacity: isLoading ? 0.6 : 1
-                      }}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
               <button
                 onClick={handleCloseEdit}
                 disabled={isLoading}
                 style={{
-                  background: '#ccc',
-                  color: '#333',
+                  background: 'rgba(255, 255, 255, 0.2)',
                   border: 'none',
-                  borderRadius: '4px',
-                  padding: '10px 20px',
+                  borderRadius: '50%',
+                  width: '40px',
+                  height: '40px',
+                  color: 'white',
                   cursor: isLoading ? 'not-allowed' : 'pointer',
-                  opacity: isLoading ? 0.6 : 1
+                  fontSize: '18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease',
+                  opacity: isLoading ? 0.5 : 1
+                }}
+                title="关闭编辑器"
+                onMouseEnter={(e) => {
+                  if (!isLoading) {
+                    (e.target as HTMLElement).style.background = 'rgba(255, 255, 255, 0.3)';
+                    (e.target as HTMLElement).style.transform = 'scale(1.05)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isLoading) {
+                    (e.target as HTMLElement).style.background = 'rgba(255, 255, 255, 0.2)';
+                    (e.target as HTMLElement).style.transform = 'scale(1)';
+                  }
                 }}
               >
-                Cancel
+                ✕
+              </button>
+            </div>
+
+            {/* Scrollable Content */}
+            <div
+              style={{
+                flex: 1,
+                overflow: 'auto',
+                padding: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '20px'
+              }}
+            >
+              {/* Scene Section */}
+              <div>
+                <label style={{ 
+                  fontWeight: '700', 
+                  display: 'block', 
+                  marginBottom: '8px',
+                  color: 'var(--text-primary)',
+                  fontSize: '16px'
+                }}>
+                  🎭 场景描述
+                </label>
+                <textarea
+                  value={editFormData.scene}
+                  onChange={(e) => setEditFormData({ ...editFormData, scene: e.target.value })}
+                  style={{
+                    width: '100%',
+                    minHeight: '120px',
+                    padding: '12px',
+                    border: '2px solid var(--border-light)',
+                    borderRadius: '12px',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                    fontSize: '14px',
+                    lineHeight: '1.5',
+                    background: 'var(--secondary-bg)',
+                    color: 'var(--text-primary)',
+                    transition: 'border-color 0.2s ease',
+                    boxSizing: 'border-box'
+                  }}
+                  placeholder="请输入场景描述..."
+                  onFocus={(e) => {
+                    (e.target as HTMLElement).style.borderColor = 'var(--macaron-blue)';
+                  }}
+                  onBlur={(e) => {
+                    (e.target as HTMLElement).style.borderColor = 'var(--border-light)';
+                  }}
+                />
+              </div>
+
+              {/* Events Section */}
+              <div>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  marginBottom: '12px',
+                  flexWrap: 'wrap',
+                  gap: '8px'
+                }}>
+                  <label style={{ 
+                    fontWeight: '700',
+                    color: 'var(--text-primary)',
+                    fontSize: '16px'
+                  }}>
+                    🎪 事件列表 ({editFormData.events.length})
+                  </label>
+                  <button
+                    onClick={addEvent}
+                    disabled={isLoading}
+                    style={{
+                      background: 'linear-gradient(135deg, var(--macaron-green) 0%, var(--macaron-green-hover) 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '8px 16px',
+                      cursor: isLoading ? 'not-allowed' : 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      opacity: isLoading ? 0.6 : 1,
+                      transition: 'all 0.2s ease',
+                      boxShadow: '0 2px 8px rgba(104, 211, 145, 0.3)'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isLoading) {
+                        (e.target as HTMLElement).style.transform = 'translateY(-1px)';
+                        (e.target as HTMLElement).style.boxShadow = '0 4px 12px rgba(104, 211, 145, 0.4)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isLoading) {
+                        (e.target as HTMLElement).style.transform = 'translateY(0)';
+                        (e.target as HTMLElement).style.boxShadow = '0 2px 8px rgba(104, 211, 145, 0.3)';
+                      }
+                    }}
+                  >
+                    + 添加事件
+                  </button>
+                </div>
+
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: '12px',
+                  maxHeight: '400px',
+                  overflow: 'auto',
+                  padding: editFormData.events.length > 3 ? '8px' : '0',
+                  border: editFormData.events.length > 3 ? '1px solid var(--border-light)' : 'none',
+                  borderRadius: editFormData.events.length > 3 ? '8px' : '0',
+                  background: editFormData.events.length > 3 ? 'var(--secondary-bg)' : 'transparent'
+                }}>
+                  {editFormData.events.length === 0 ? (
+                    <div style={{
+                      padding: '20px',
+                      textAlign: 'center',
+                      color: 'var(--text-muted)',
+                      fontSize: '14px',
+                      fontStyle: 'italic'
+                    }}>
+                      暂无事件，点击"添加事件"开始创建...
+                    </div>
+                  ) : (
+                    editFormData.events.map((event, index) => (
+                      <div 
+                        key={event.id || index} 
+                        style={{ 
+                          padding: '16px', 
+                          border: '1px solid var(--border-light)', 
+                          borderRadius: '12px',
+                          background: 'var(--card-bg)',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          (e.target as HTMLElement).style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                          (e.target as HTMLElement).style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.target as HTMLElement).style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
+                          (e.target as HTMLElement).style.transform = 'translateY(0)';
+                        }}
+                      >
+                        <div style={{ 
+                          display: 'flex', 
+                          gap: '12px', 
+                          marginBottom: '12px',
+                          flexWrap: 'wrap'
+                        }}>
+                          <input
+                            type="text"
+                            value={event.speaker}
+                            onChange={(e) => updateEvent(index, 'speaker', e.target.value)}
+                            placeholder="发言人..."
+                            disabled={isLoading}
+                            style={{
+                              flex: '1 1 150px',
+                              minWidth: '150px',
+                              padding: '8px 12px',
+                              border: '1px solid var(--border-light)',
+                              borderRadius: '8px',
+                              background: 'var(--secondary-bg)',
+                              color: 'var(--text-primary)',
+                              fontSize: '14px',
+                              opacity: isLoading ? 0.6 : 1,
+                              transition: 'border-color 0.2s ease'
+                            }}
+                            onFocus={(e) => {
+                              (e.target as HTMLElement).style.borderColor = 'var(--macaron-blue)';
+                            }}
+                            onBlur={(e) => {
+                              (e.target as HTMLElement).style.borderColor = 'var(--border-light)';
+                            }}
+                          />
+                          <select
+                            value={event.event_type}
+                            onChange={(e) => updateEvent(index, 'event_type', e.target.value)}
+                            disabled={isLoading}
+                            style={{
+                              flex: '0 0 auto',
+                              padding: '8px 12px',
+                              border: '1px solid var(--border-light)',
+                              borderRadius: '8px',
+                              background: 'var(--secondary-bg)',
+                              color: 'var(--text-primary)',
+                              fontSize: '14px',
+                              opacity: isLoading ? 0.6 : 1,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <option value="dialogue">💬 对话</option>
+                            <option value="action">⚡ 动作</option>
+                            <option value="thought">💭 思考</option>
+                            <option value="description">📝 描述</option>
+                          </select>
+                          <button
+                            onClick={() => removeEvent(index)}
+                            disabled={isLoading}
+                            style={{
+                              background: 'linear-gradient(135deg, var(--macaron-red) 0%, #F56565 100%)',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '8px',
+                              padding: '8px 12px',
+                              cursor: isLoading ? 'not-allowed' : 'pointer',
+                              fontSize: '14px',
+                              fontWeight: '600',
+                              opacity: isLoading ? 0.6 : 1,
+                              transition: 'all 0.2s ease',
+                              flex: '0 0 auto'
+                            }}
+                            title="删除事件"
+                            onMouseEnter={(e) => {
+                              if (!isLoading) {
+                                (e.target as HTMLElement).style.transform = 'scale(1.05)';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!isLoading) {
+                                (e.target as HTMLElement).style.transform = 'scale(1)';
+                              }
+                            }}
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                        <textarea
+                          value={event.content}
+                          onChange={(e) => updateEvent(index, 'content', e.target.value)}
+                          placeholder="事件内容..."
+                          disabled={isLoading}
+                          rows={3}
+                          style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            border: '1px solid var(--border-light)',
+                            borderRadius: '8px',
+                            background: 'var(--secondary-bg)',
+                            color: 'var(--text-primary)',
+                            fontSize: '14px',
+                            lineHeight: '1.5',
+                            resize: 'vertical',
+                            fontFamily: 'inherit',
+                            opacity: isLoading ? 0.6 : 1,
+                            transition: 'border-color 0.2s ease',
+                            boxSizing: 'border-box'
+                          }}
+                          onFocus={(e) => {
+                            (e.target as HTMLElement).style.borderColor = 'var(--macaron-blue)';
+                          }}
+                          onBlur={(e) => {
+                            (e.target as HTMLElement).style.borderColor = 'var(--border-light)';
+                          }}
+                        />
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Actions Section */}
+              <div>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  marginBottom: '12px',
+                  flexWrap: 'wrap',
+                  gap: '8px'
+                }}>
+                  <label style={{ 
+                    fontWeight: '700',
+                    color: 'var(--text-primary)',
+                    fontSize: '16px'
+                  }}>
+                    ⚡ 动作选项 ({editFormData.actions.length})
+                  </label>
+                  <button
+                    onClick={addAction}
+                    disabled={isLoading}
+                    style={{
+                      background: 'linear-gradient(135deg, var(--macaron-blue) 0%, var(--macaron-blue-hover) 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '8px 16px',
+                      cursor: isLoading ? 'not-allowed' : 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      opacity: isLoading ? 0.6 : 1,
+                      transition: 'all 0.2s ease',
+                      boxShadow: '0 2px 8px rgba(99, 179, 237, 0.3)'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isLoading) {
+                        (e.target as HTMLElement).style.transform = 'translateY(-1px)';
+                        (e.target as HTMLElement).style.boxShadow = '0 4px 12px rgba(99, 179, 237, 0.4)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isLoading) {
+                        (e.target as HTMLElement).style.transform = 'translateY(0)';
+                        (e.target as HTMLElement).style.boxShadow = '0 2px 8px rgba(99, 179, 237, 0.3)';
+                      }
+                    }}
+                  >
+                    + 添加动作
+                  </button>
+                </div>
+
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: '12px',
+                  maxHeight: '300px',
+                  overflow: 'auto',
+                  padding: editFormData.actions.length > 2 ? '8px' : '0',
+                  border: editFormData.actions.length > 2 ? '1px solid var(--border-light)' : 'none',
+                  borderRadius: editFormData.actions.length > 2 ? '8px' : '0',
+                  background: editFormData.actions.length > 2 ? 'var(--secondary-bg)' : 'transparent'
+                }}>
+                  {editFormData.actions.length === 0 ? (
+                    <div style={{
+                      padding: '20px',
+                      textAlign: 'center',
+                      color: 'var(--text-muted)',
+                      fontSize: '14px',
+                      fontStyle: 'italic'
+                    }}>
+                      暂无动作选项，点击"添加动作"开始创建...
+                    </div>
+                  ) : (
+                    editFormData.actions.map((action, index) => (
+                      <div 
+                        key={action.id} 
+                        style={{ 
+                          padding: '16px', 
+                          border: '1px solid var(--border-light)', 
+                          borderRadius: '12px',
+                          background: 'var(--card-bg)',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          (e.target as HTMLElement).style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                          (e.target as HTMLElement).style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.target as HTMLElement).style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
+                          (e.target as HTMLElement).style.transform = 'translateY(0)';
+                        }}
+                      >
+                        <div style={{ 
+                          display: 'flex', 
+                          gap: '12px', 
+                          alignItems: 'center',
+                          flexWrap: 'wrap'
+                        }}>
+                          <input
+                            type="text"
+                            value={action.description}
+                            onChange={(e) => updateAction(index, 'description', e.target.value)}
+                            placeholder="动作描述..."
+                            disabled={isLoading}
+                            style={{
+                              flex: '1 1 200px',
+                              minWidth: '200px',
+                              padding: '8px 12px',
+                              border: '1px solid var(--border-light)',
+                              borderRadius: '8px',
+                              background: 'var(--secondary-bg)',
+                              color: 'var(--text-primary)',
+                              fontSize: '14px',
+                              opacity: isLoading ? 0.6 : 1,
+                              transition: 'border-color 0.2s ease'
+                            }}
+                            onFocus={(e) => {
+                              (e.target as HTMLElement).style.borderColor = 'var(--macaron-blue)';
+                            }}
+                            onBlur={(e) => {
+                              (e.target as HTMLElement).style.borderColor = 'var(--border-light)';
+                            }}
+                          />
+                          <label style={{ 
+                            fontSize: '14px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            color: 'var(--text-secondary)',
+                            fontWeight: '500',
+                            cursor: 'pointer',
+                            flex: '0 0 auto'
+                          }}>
+                            <input
+                              type="checkbox"
+                              checked={action.is_key_action}
+                              onChange={(e) => updateAction(index, 'is_key_action', e.target.checked)}
+                              disabled={isLoading}
+                              style={{ 
+                                width: '16px',
+                                height: '16px',
+                                accentColor: 'var(--macaron-blue)'
+                              }}
+                            />
+                            🔑 关键动作
+                          </label>
+                          <button
+                            onClick={() => removeAction(index)}
+                            disabled={isLoading}
+                            style={{
+                              background: 'linear-gradient(135deg, var(--macaron-red) 0%, #F56565 100%)',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '8px',
+                              padding: '8px 12px',
+                              cursor: isLoading ? 'not-allowed' : 'pointer',
+                              fontSize: '14px',
+                              fontWeight: '600',
+                              opacity: isLoading ? 0.6 : 1,
+                              transition: 'all 0.2s ease',
+                              flex: '0 0 auto'
+                            }}
+                            title="删除动作"
+                            onMouseEnter={(e) => {
+                              if (!isLoading) {
+                                (e.target as HTMLElement).style.transform = 'scale(1.05)';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!isLoading) {
+                                (e.target as HTMLElement).style.transform = 'scale(1)';
+                              }
+                            }}
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div
+              style={{
+                padding: '16px 24px',
+                borderTop: '1px solid var(--border-light)',
+                background: 'var(--secondary-bg)',
+                borderRadius: '0 0 16px 16px',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '12px',
+                flexWrap: 'wrap'
+              }}
+            >
+              <button
+                onClick={handleCloseEdit}
+                disabled={isLoading}
+                style={{
+                  background: 'var(--border-medium)',
+                  color: 'var(--text-secondary)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '12px 24px',
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  opacity: isLoading ? 0.6 : 1,
+                  transition: 'all 0.2s ease',
+                  flex: '0 0 auto'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isLoading) {
+                    (e.target as HTMLElement).style.background = 'var(--border-light)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isLoading) {
+                    (e.target as HTMLElement).style.background = 'var(--border-medium)';
+                  }
+                }}
+              >
+                取消
               </button>
               <button
                 onClick={handleSaveEdit}
                 disabled={isLoading}
                 style={{
-                  background: '#4CAF50',
+                  background: isLoading 
+                    ? 'var(--border-medium)' 
+                    : 'linear-gradient(135deg, var(--macaron-green) 0%, var(--macaron-green-hover) 100%)',
                   color: 'white',
                   border: 'none',
-                  borderRadius: '4px',
-                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  padding: '12px 24px',
                   cursor: isLoading ? 'not-allowed' : 'pointer',
-                  opacity: isLoading ? 0.6 : 1
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  opacity: isLoading ? 0.8 : 1,
+                  transition: 'all 0.2s ease',
+                  boxShadow: isLoading ? 'none' : '0 2px 8px rgba(104, 211, 145, 0.3)',
+                  flex: '0 0 auto'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isLoading) {
+                    (e.target as HTMLElement).style.transform = 'translateY(-1px)';
+                    (e.target as HTMLElement).style.boxShadow = '0 4px 12px rgba(104, 211, 145, 0.4)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isLoading) {
+                    (e.target as HTMLElement).style.transform = 'translateY(0)';
+                    (e.target as HTMLElement).style.boxShadow = '0 2px 8px rgba(104, 211, 145, 0.3)';
+                  }
                 }}
               >
-                {isLoading ? 'Saving & Syncing...' : 'Save & Sync to Database'}
+                {isLoading ? '⏳ 保存并同步中...' : '💾 保存并同步到数据库'}
               </button>
             </div>
           </div>
