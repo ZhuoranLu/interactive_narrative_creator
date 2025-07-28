@@ -49,6 +49,14 @@ const Navigation: React.FC<NavigationProps> = ({ currentUser, onLogout }) => {
                 设置
               </Link>
             </li>
+            <li>
+              <Link 
+                to="/game-sandbox" 
+                className={`nav-link ${isActive('/game-sandbox') ? 'active' : ''}`}
+              >
+                🎮 游戏沙盒
+              </Link>
+            </li>
           </ul>
         </nav>
         <div className="user-info">

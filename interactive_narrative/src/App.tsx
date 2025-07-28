@@ -5,6 +5,7 @@ import LoginPage from './components/LoginPage';
 import HomePage from './components/HomePage';
 import AboutPage from './components/AboutPage';
 import SettingsPage from './components/SettingsPage';
+import GameSandbox from './components/GameSandbox';
 import ProtectedRoute from './components/ProtectedRoute';
 import { authService, User } from './services/authService';
 
@@ -96,6 +97,15 @@ function App() {
             element={
               <ProtectedRoute isAuthenticated={isLoggedIn}>
                 <SettingsPage currentUser={currentUser} onLogout={handleLogout} />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/game-sandbox" 
+            element={
+              <ProtectedRoute isAuthenticated={isLoggedIn}>
+                <GameSandbox />
               </ProtectedRoute>
             } 
           />
