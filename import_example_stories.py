@@ -110,6 +110,7 @@ class StoryImporter:
                 key=lambda x: x[1].get("level", 0)
             )
             
+            # First pass: Create all nodes
             for old_node_id, node_info in sorted_nodes:
                 node_data = node_info.get("data", {})
                 level = node_info.get("level", 0)
@@ -133,12 +134,17 @@ class StoryImporter:
                 )
                 
                 node_id_mapping[old_node_id] = db_node.id
+            
+            # Second pass: Create events and actions
+            for old_node_id, node_info in sorted_nodes:
+                node_data = node_info.get("data", {})
+                current_node_id = node_id_mapping[old_node_id]
                 
                 # Import events for this node
                 events_data = node_data.get("events", [])
                 for event_data in events_data:
                     db_event = self.event_repo.create_event(
-                        node_id=db_node.id,
+                        node_id=current_node_id,
                         content=event_data.get("content", ""),
                         speaker=event_data.get("speaker", ""),
                         description=event_data.get("description", ""),
@@ -167,6 +173,7 @@ class StoryImporter:
                 outgoing_actions = node_data.get("outgoing_actions", [])
                 for action_binding in outgoing_actions:
                     action_data = action_binding.get("action", {})
+                    old_target_node_id = action_binding.get("target_node_id")
                     
                     # Create the action
                     db_action = self.action_repo.create_action(
@@ -181,16 +188,16 @@ class StoryImporter:
                         }
                     )
                     
-                    # Create action binding (will be handled later for target_node_id mapping)
-                    # For now, store the binding info in action metadata
-                    if action_binding.get("target_node_id"):
-                        # Update the action's metadata properly
-                        updated_metadata = dict(db_action.meta_data) if db_action.meta_data else {}
-                        updated_metadata["target_node_id"] = action_binding["target_node_id"]
-                        
-                        # Update the action in database directly
-                        db_action.meta_data = updated_metadata
-                        self.db.commit()
+                    # Create action binding
+                    if old_target_node_id:
+                        new_target_node_id = node_id_mapping.get(old_target_node_id)
+                        if new_target_node_id:
+                            self.action_repo.create_action_binding(
+                                action_id=db_action.id,
+                                source_node_id=current_node_id,
+                                target_node_id=new_target_node_id
+                            )
+                            print(f"  ✅ Created binding: {db_action.description[:30]}... -> {new_target_node_id}")
             
             print(f"✅ Imported {len(sorted_nodes)} nodes with events and actions")
             
@@ -210,6 +217,8 @@ class StoryImporter:
             
         except Exception as e:
             print(f"❌ Error importing story: {e}")
+            import traceback
+            traceback.print_exc()
             self.db.rollback()
             return None
     
@@ -289,4 +298,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    main()
