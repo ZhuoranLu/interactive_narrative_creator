@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import StoryTreeGraph from './StoryTreeGraph';
+import StoryTreeGraph, { StoryNode, StoryTree } from './StoryTreeGraph';
 import StoryExampleModal from './StoryExampleModal';
 import { Project, authService } from '../services/authService';
 
@@ -16,35 +16,6 @@ interface NarrativeResponse {
   data?: any;
   error?: string;
   message?: string;
-}
-
-interface StoryNode {
-  id: string;
-  level: number;
-  type: string;
-  parent_node_id?: string;
-  data: {
-    scene: string;
-    outgoing_actions: Array<{
-      action: {
-        id: string;
-        description: string;
-        is_key_action: boolean;
-      };
-      target_node_id: string | null;
-    }>;
-  };
-}
-
-interface StoryTree {
-  nodes: Record<string, StoryNode>;
-  connections: Array<{
-    from_node_id: string;
-    to_node_id: string;
-    action_id: string;
-    action_description: string;
-  }>;
-  root_node_id: string;
 }
 
 const NarrativeClient = () => {
@@ -101,6 +72,7 @@ const NarrativeClient = () => {
         parent_node_id: nodeData.parent_node_id,
         data: {
           scene: nodeData.data.scene,
+          events: nodeData.data.events || [],
           outgoing_actions: nodeData.data.outgoing_actions || []
         }
       };
@@ -116,20 +88,26 @@ const NarrativeClient = () => {
   // Load story from public folder
   const loadDefaultStoryExample = async () => {
     setLoadingStory(true);
-    setError('');
-    
     try {
-      const response = await fetch('/story_tree_example.json');
-      if (!response.ok) {
-        throw new Error(`Failed to load story: ${response.status}`);
+      // Get the default example project
+      const projects = await authService.getUserProjects();
+      if (projects && projects.length > 0) {
+        const defaultProject = projects[0];
+        // Set the current project ID
+        setCurrentProjectId(defaultProject.id);
+        
+        const response = await authService.loadProjectStoryTree(defaultProject.id);
+        if (response.success && response.data) {
+          const transformedStory = transformStoryData(response.data);
+          setStoryTree(transformedStory);
+          console.log('Default story loaded:', defaultProject.id);
+          console.log('Story tree:', transformedStory);
+        }
       }
-      
-      const jsonData = await response.json();
-      const transformedStory = transformStoryData(jsonData);
-      setStoryTree(transformedStory);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load story';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load default story';
       setError(errorMessage);
+      setCurrentProjectId(null);
     } finally {
       setLoadingStory(false);
     }
@@ -141,20 +119,32 @@ const NarrativeClient = () => {
     setError('');
     
     try {
-      // Load the project's story tree from the backend
+      // Set the current project ID immediately
+      setCurrentProjectId(project.id);
+      console.log('Current project ID set to:', project.id, 'Current project ID:', currentProjectId);
+
+      // Load the story tree using the selected project's ID
       const response = await authService.loadProjectStoryTree(project.id);
       
       if (response.success && response.data) {
         const transformedStory = transformStoryData(response.data);
         setStoryTree(transformedStory);
-        setCurrentProjectId(project.id);
-        console.log('Successfully loaded project:', project.title);
+        
+        console.log('Successfully loaded project:', {
+          projectId: project.id,
+          title: project.title,
+          storyTree: transformedStory
+        });
       } else {
         throw new Error('Failed to load project data');
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load project';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load project';
       setError(errorMessage);
+      
+      // Reset state on failure
+      setStoryTree(null);
+      setCurrentProjectId(null);
     } finally {
       setLoadingStory(false);
     }
@@ -207,22 +197,181 @@ const NarrativeClient = () => {
 
   // Example usage functions
   const handleBootstrapStory = async (idea: string) => {
-    const payload: NarrativePayload = {
-      request_type: 'bootstrap_node',
-      context: { idea },
-      user_input: idea,
-    };
-    return await callNarrativeAPI(payload);
+    try {
+      // First create a new project
+      const newProject = await authService.createProject({
+        title: idea.substring(0, 50) + (idea.length > 50 ? '...' : ''),
+        description: idea
+      });
+      
+      // Create the initial node with the new project ID
+      const projectId = newProject.id;
+      const payload: NarrativePayload = {
+        request_type: 'bootstrap_node',
+        context: { 
+          idea,
+          project_id: projectId
+        },
+        user_input: idea,
+        metadata: { project_id: projectId }
+      };
+      
+      const result = await callNarrativeAPI(payload);
+      
+      if (result?.success && result.data) {
+        // Create initial story tree
+        const initialNode: StoryNode = {
+          id: result.data.node.id || 'root',
+          level: 0,
+          type: 'scene',
+          data: {
+            scene: result.data.node.scene,
+            events: result.data.node.events || [],
+            outgoing_actions: result.data.node.outgoing_actions || []
+          }
+        };
+        
+        const newStoryTree = {
+          nodes: { [initialNode.id]: initialNode },
+          connections: [],
+          root_node_id: initialNode.id
+        };
+        
+        // Update the project with the initial node
+        await authService.updateProject(projectId, {
+          start_node_id: initialNode.id,
+          story_tree: newStoryTree
+        });
+        
+        // Set both story tree and project ID after everything is ready
+        setStoryTree(newStoryTree);
+        setCurrentProjectId(projectId);
+        
+        console.log('New story created:', {
+          project_id: projectId,
+          node_id: initialNode.id,
+          story_tree: newStoryTree
+        });
+        
+        return result;
+      }
+      return result;
+    } catch (error) {
+      console.error('Failed to create story:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create story';
+      setError(errorMessage);
+      setCurrentProjectId(null);
+      return null;
+    }
   };
 
-  const handleContinueStory = async (currentNode: any, selectedAction: any, worldState: any) => {
-    const payload: NarrativePayload = {
-      request_type: 'generate_next_node',
-      context: { world_state: worldState, selected_action: selectedAction },
+  const handleContinueStory = async (currentNode: any, selectedAction: any, worldState: any, projectIdFromChild: any) => {
+    const projectId = projectIdFromChild || currentProjectId;
+    console.log("currently handling continue story with projectId:", projectId);
+    if (!projectId) {
+      console.error('No project ID available');
+      handleApiError('No project ID available');
+      return null;
+    }
+
+    const payload = {
+      request_type: "generate_next_node",
+      context: { 
+        world_state: worldState, 
+        selected_action: selectedAction,
+        project_id: projectId
+      },
       current_node: currentNode,
+      metadata: { project_id: projectId }
     };
-    return await callNarrativeAPI(payload);
-  };
+    console.log("payload:", payload);
+
+    try {
+
+        const response = await callNarrativeAPI(payload);
+
+        console.log("response:", response);
+
+        if (response && response.success && response.data) {
+            const newNode = response.data.node;
+            const newWorldState = response.data.world_state;
+
+            // Format the new node to match StoryNode interface
+            const formattedNode: StoryNode = {
+                id: newNode.id,
+                level: currentNode.level + 1,
+                type: 'scene',
+                parent_node_id: currentNode.id,
+                data: {
+                    scene: newNode.scene,
+                    events: newNode.events,
+                    outgoing_actions: newNode.outgoing_actions
+                }
+            };
+
+            // Create new connection
+            const newConnection = {
+                from_node_id: currentNode.id,
+                to_node_id: formattedNode.id,
+                action_id: selectedAction?.id || '',
+                action_description: selectedAction?.description || 'Continue'
+            };
+
+            // Update the story tree state
+            setStoryTree(prevTree => {
+                if (!prevTree) {
+                    // If no tree exists, create a new one
+                    return {
+                        nodes: {
+                            [currentNode.id]: currentNode,
+                            [formattedNode.id]: formattedNode
+                        },
+                        connections: [newConnection],
+                        root_node_id: currentNode.id
+                    };
+                }
+
+                // Add new node and connection to existing tree
+                return {
+                    ...prevTree,
+                    nodes: {
+                        ...prevTree.nodes,
+                        [formattedNode.id]: formattedNode
+                    },
+                    connections: [...prevTree.connections, newConnection]
+                };
+            });
+
+            // Save the new node to the project
+            await authService.saveProjectNode(projectId, formattedNode);
+            
+            // Update the project's story tree
+            const updatedTree = await authService.loadProjectStoryTree(projectId);
+            if (updatedTree.success && updatedTree.data) {
+                const transformedStory = transformStoryData(updatedTree.data);
+                setStoryTree(transformedStory);
+            }
+
+            // Log for debugging
+            console.log('Story update:', {
+                project_id: projectId,
+                new_node: formattedNode,
+                story_tree: updatedTree
+            });
+
+            return formattedNode;
+        } else {
+            console.error('Failed to generate next node:', response?.error || 'Unknown error');
+            handleApiError(response?.error || 'Failed to generate next node');
+            return null;
+        }
+    } catch (error: unknown) {
+        console.error('Error in handleContinueStory:', error);
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+        handleApiError(errorMessage);
+        return null;
+    }
+};
 
   const handleApplyAction = async (currentNode: any, actionId: string, worldState: any) => {
     const payload: NarrativePayload = {
@@ -263,7 +412,8 @@ const NarrativeClient = () => {
       }}>
         Interactive Narrative Creator
       </h2>
-      
+
+      {/* Action Buttons */}
       <div style={{ marginBottom: '24px', display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
         <button 
           onClick={() => handleBootstrapStory('若诸葛亮没死，他会如何改变三国的历史')} 
@@ -296,7 +446,7 @@ const NarrativeClient = () => {
           Bootstrap Story
         </button>
         <button 
-          onClick={() => handleContinueStory(null, null, {})} 
+          onClick={() => handleContinueStory(null, null, {}, null)} 
           disabled={loading}
           style={{
             background: loading ? 'var(--border-medium)' : 'linear-gradient(135deg, var(--macaron-blue) 0%, var(--macaron-blue-hover) 100%)',
@@ -445,105 +595,9 @@ const NarrativeClient = () => {
         >
           Load My Stories
         </button>
-        
-        {/* Quick Rollback Button */}
-        {currentProjectId && (
-          <button 
-            onClick={async () => {
-              if (!currentProjectId) return;
-              
-              try {
-                const { narrativeService } = await import('../services/narrativeService');
-                const historyData = await narrativeService.getProjectHistory(currentProjectId);
-                
-                if (historyData.history && historyData.history.length > 1) {
-                  const lastSnapshot = historyData.history[1]; // Skip current state
-                  const confirmRollback = window.confirm(
-                    `🔄 回滚故事到上一个状态？\n\n"${lastSnapshot.operation_description}"\n\n这将撤销最近的更改！`
-                  );
-                  
-                  if (confirmRollback) {
-                    await narrativeService.rollbackToSnapshot(currentProjectId, { snapshot_id: lastSnapshot.id });
-                    await handleStoryReload();
-                    setError(''); // Clear any previous errors
-                    console.log('Story rolled back successfully');
-                  }
-                } else {
-                  alert('ℹ️ 没有可回滚的历史状态');
-                }
-              } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'Rollback failed';
-                setError(`回滚失败: ${errorMessage}`);
-                console.error('Rollback error:', error);
-              }
-            }}
-            disabled={loadingStory}
-            style={{
-              background: loadingStory ? 'var(--border-medium)' : 'linear-gradient(135deg, var(--macaron-red) 0%, var(--macaron-red-hover) 100%)',
-              color: 'white',
-              border: 'none',
-              padding: '12px 20px',
-              borderRadius: '12px',
-              cursor: loadingStory ? 'not-allowed' : 'pointer',
-              fontSize: '14px',
-              fontWeight: '600',
-              boxShadow: loadingStory ? 'none' : '0 4px 12px rgba(245, 101, 101, 0.3)',
-              transition: 'all 0.2s ease'
-            }}
-            title="回滚到上一个编辑状态"
-            onMouseEnter={(e) => {
-              if (!loadingStory) {
-                (e.target as HTMLElement).style.transform = 'translateY(-2px)';
-                (e.target as HTMLElement).style.boxShadow = '0 6px 16px rgba(245, 101, 101, 0.4)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!loadingStory) {
-                (e.target as HTMLElement).style.transform = 'translateY(0)';
-                (e.target as HTMLElement).style.boxShadow = '0 4px 12px rgba(245, 101, 101, 0.3)';
-              }
-            }}
-          >
-            🔄 撤销上一步
-          </button>
-        )}
       </div>
 
-      {/* Story Tree Visualization */}
-      {storyTree && (
-        <div style={{ marginBottom: '30px' }}>
-          <h3 style={{ color: 'var(--text-primary)', fontWeight: '600' }}>Story Tree Visualization</h3>
-          
-          {/* Help info for rollback */}
-          {currentProjectId && (
-            <div style={{ 
-              background: 'linear-gradient(135deg, var(--macaron-blue-hover) 0%, rgba(144, 205, 244, 0.1) 100%)', 
-              border: '1px solid var(--macaron-blue)', 
-              borderRadius: '12px', 
-              padding: '16px', 
-              marginBottom: '20px',
-              fontSize: '14px',
-              color: 'var(--text-primary)'
-            }}>
-              <strong style={{ color: 'var(--macaron-blue)' }}>💡 编辑历史功能：</strong>
-              <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
-                <li><strong>🔄 撤销上一步</strong> - 快速回滚到上一个编辑状态</li>
-                <li><strong>📚 编辑历史</strong> - 查看完整编辑历史，可回滚到任意状态（最多5个历史记录）</li>
-                <li><strong>自动保存</strong> - 每次编辑操作前会自动创建历史快照</li>
-              </ul>
-            </div>
-          )}
-          
-          <StoryTreeGraph 
-            storyData={storyTree} 
-            onNodeUpdate={handleNodeUpdate}
-            onApiError={handleApiError}
-            projectId={currentProjectId || undefined}
-            onStoryReload={handleStoryReload}
-          />
-        </div>
-      )}
-
+      {/* Input and Controls */}
       <div style={{ 
         marginBottom: '24px', 
         padding: '20px', 
@@ -559,189 +613,114 @@ const NarrativeClient = () => {
         }}>
           Create Your Story
         </h3>
-        <textarea 
-          value={userInput}
-          onChange={(e) => setUserInput(e.target.value)}
-          placeholder="Enter your story idea or prompt..."
-          style={{ 
-            width: '100%', 
-            height: '100px', 
-            padding: '16px', 
-            borderRadius: '12px', 
-            border: '2px solid var(--border-light)',
-            resize: 'vertical',
-            fontSize: '14px',
-            fontFamily: 'Inter, system-ui, sans-serif',
-            background: 'var(--card-bg)',
-            color: 'var(--text-primary)',
-            transition: 'all 0.2s ease'
-          }}
-          onFocus={(e) => {
-            (e.target as HTMLElement).style.borderColor = 'var(--macaron-blue)';
-            (e.target as HTMLElement).style.boxShadow = '0 0 0 3px rgba(99, 179, 237, 0.1)';
-          }}
-          onBlur={(e) => {
-            (e.target as HTMLElement).style.borderColor = 'var(--border-light)';
-            (e.target as HTMLElement).style.boxShadow = 'none';
-          }}
-        />
-        <button 
-          onClick={() => handleBootstrapStory(userInput)}
-          disabled={loading || !userInput.trim()}
-          style={{ 
-            marginTop: '16px', 
-            padding: '12px 24px', 
-            background: (loading || !userInput.trim()) 
-              ? 'var(--border-medium)' 
-              : 'linear-gradient(135deg, var(--macaron-blue) 0%, var(--macaron-blue-hover) 100%)', 
-            color: 'white', 
-            border: 'none', 
-            borderRadius: '12px',
-            cursor: (loading || !userInput.trim()) ? 'not-allowed' : 'pointer',
-            fontSize: '14px',
-            fontWeight: '600',
-            boxShadow: (loading || !userInput.trim()) 
-              ? 'none' 
-              : '0 4px 12px rgba(99, 179, 237, 0.3)',
-            transition: 'all 0.2s ease'
-          }}
-          onMouseEnter={(e) => {
-            if (!loading && userInput.trim()) {
-              (e.target as HTMLElement).style.transform = 'translateY(-2px)';
-              (e.target as HTMLElement).style.boxShadow = '0 6px 16px rgba(99, 179, 237, 0.4)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!loading && userInput.trim()) {
-              (e.target as HTMLElement).style.transform = 'translateY(0)';
-              (e.target as HTMLElement).style.boxShadow = '0 4px 12px rgba(99, 179, 237, 0.3)';
-            }
-          }}
-        >
-          Start Story
-        </button>
+        
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+          <input
+            type="text"
+            value={userInput}
+            onChange={(e) => setUserInput(e.target.value)}
+            placeholder="Enter your story idea..."
+            style={{
+              flex: 1,
+              padding: '12px',
+              border: '1px solid var(--border-light)',
+              borderRadius: '8px',
+              fontSize: '14px'
+            }}
+          />
+          <button
+            onClick={async () => {
+              if (!userInput.trim()) return;
+              const result = await handleBootstrapStory(userInput);
+              if (result?.success && result.data) {
+                // Create initial story tree
+                const initialNode: StoryNode = {
+                  id: result.data.node.id || 'root',
+                  level: 0,
+                  type: 'scene',
+                  data: {
+                    scene: result.data.node.scene,
+                    events: result.data.node.events || [],
+                    outgoing_actions: result.data.node.outgoing_actions || []
+                  }
+                };
+                
+                setStoryTree({
+                  nodes: { [initialNode.id]: initialNode },
+                  connections: [],
+                  root_node_id: initialNode.id
+                });
+                
+                setUserInput('');
+              }
+            }}
+            disabled={loading || !userInput.trim()}
+            style={{
+              padding: '12px 24px',
+              background: loading ? 'var(--border-medium)' : 'var(--macaron-blue)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.7 : 1
+            }}
+          >
+            {loading ? 'Creating...' : 'Create Story'}
+          </button>
+        </div>
       </div>
 
-      {loading && (
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
+      {/* Story Tree Visualization */}
+      {storyTree && (
+        <div style={{ marginBottom: '30px' }}>
+          <StoryTreeGraph
+            storyData={storyTree}
+            projectId={currentProjectId || undefined}
+            onNodeUpdate={(nodeId: string, updatedNode: StoryNode) => {
+              setStoryTree((prevTree: StoryTree | null) => {
+                if (!prevTree) return null;
+                return {
+                  ...prevTree,
+                  nodes: {
+                    ...prevTree.nodes,
+                    [nodeId]: updatedNode
+                  }
+                };
+              });
+            }}
+            onApiError={handleApiError}
+            onStoryReload={handleStoryReload}
+            onContinueStory={(currentNode, selectedAction, worldState, projectIdFromChild) => handleContinueStory(currentNode, selectedAction, worldState, projectIdFromChild)}
+          />
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loadingStory && (
+        <div style={{
           padding: '20px',
-          background: 'linear-gradient(135deg, var(--macaron-blue-hover) 0%, rgba(144, 205, 244, 0.1) 100%)',
-          borderRadius: '12px',
-          border: '1px solid var(--macaron-blue)',
-          marginBottom: '20px'
+          textAlign: 'center',
+          color: 'var(--text-secondary)'
         }}>
-          <div style={{ 
-            width: '20px', 
-            height: '20px', 
-            border: '2px solid var(--border-light)',
-            borderTop: '2px solid var(--macaron-blue)',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            marginRight: '12px'
-          }}></div>
-          <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>Loading...</span>
+          Loading story...
         </div>
       )}
-      
+
+      {/* Error State */}
       {error && (
-        <div style={{ 
-          color: 'white', 
-          padding: '16px 20px', 
-          border: '1px solid var(--macaron-red)', 
-          borderRadius: '12px',
-          marginBottom: '20px',
-          background: 'linear-gradient(135deg, var(--macaron-red) 0%, var(--macaron-red-hover) 100%)',
-          boxShadow: '0 4px 12px rgba(245, 101, 101, 0.3)',
-          fontWeight: '500'
+        <div style={{
+          padding: '20px',
+          textAlign: 'center',
+          color: 'var(--macaron-red)',
+          background: 'var(--macaron-red-light)',
+          borderRadius: '8px',
+          marginTop: '16px'
         }}>
-          <strong>Error:</strong> {error}
-        </div>
-      )}
-      
-      {response && (
-        <div style={{ 
-          padding: '20px', 
-          border: '1px solid var(--border-light)', 
-          borderRadius: '16px', 
-          background: 'var(--card-bg)',
-          marginTop: '24px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
-        }}>
-          <h3 style={{ 
-            color: 'var(--text-primary)', 
-            fontWeight: '600', 
-            marginBottom: '16px' 
-          }}>
-            Response:
-          </h3>
-          <pre style={{ 
-            whiteSpace: 'pre-wrap',
-            background: 'var(--secondary-bg)',
-            padding: '16px',
-            borderRadius: '12px',
-            border: '1px solid var(--border-light)',
-            fontSize: '13px',
-            color: 'var(--text-primary)',
-            fontFamily: 'JetBrains Mono, Consolas, Monaco, monospace',
-            overflow: 'auto'
-          }}>
-            {JSON.stringify(response, null, 2)}
-          </pre>
+          Error: {error}
         </div>
       )}
 
-      <div style={{ 
-        marginTop: '32px', 
-        padding: '20px', 
-        background: 'var(--secondary-bg)', 
-        borderRadius: '16px',
-        border: '1px solid var(--border-light)'
-      }}>
-        <h4 style={{ 
-          color: 'var(--text-primary)', 
-          fontWeight: '600', 
-          marginBottom: '12px' 
-        }}>
-          API Usage:
-        </h4>
-        <p style={{ 
-          color: 'var(--text-secondary)', 
-          marginBottom: '12px',
-          lineHeight: '1.6' 
-        }}>
-          Use <code style={{ 
-            background: 'var(--card-bg)', 
-            padding: '2px 6px', 
-            borderRadius: '4px',
-            border: '1px solid var(--border-light)',
-            color: 'var(--macaron-purple)',
-            fontWeight: '600'
-          }}>callNarrativeAPI(payload)</code> with structured payload:
-        </p>
-        <pre style={{ 
-          fontSize: '12px',
-          background: 'var(--card-bg)',
-          padding: '16px',
-          borderRadius: '12px',
-          border: '1px solid var(--border-light)',
-          color: 'var(--text-primary)',
-          fontFamily: 'JetBrains Mono, Consolas, Monaco, monospace',
-          overflow: 'auto'
-        }}>
-{`{
-  request_type: "bootstrap_node" | "generate_next_node" | "apply_action" | "regenerate_part",
-  context: { /* specific context for the request */ },
-  current_node?: { /* current node data */ },
-  user_input?: "user input string",
-  metadata?: { /* any additional metadata */ }
-}`}
-        </pre>
-      </div>
-
-      {/* Story Example Modal */}
+      {/* Example Modal */}
       <StoryExampleModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}

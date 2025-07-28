@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { narrativeService } from '../services/narrativeService';
 import StoryHistoryPanel from './StoryHistoryPanel';
 
-interface StoryNode {
+export interface StoryNode {
   id: string;
   level: number;
   type: string;
@@ -10,10 +10,11 @@ interface StoryNode {
   data: {
     scene: string;
     events?: Array<{
-      id?: string;
+      id: string;
       speaker: string;
       content: string;
       event_type: string;
+      timestamp: number;
     }>;
     outgoing_actions: Array<{
       action: {
@@ -26,7 +27,7 @@ interface StoryNode {
   };
 }
 
-interface StoryTree {
+export interface StoryTree {
   nodes: Record<string, StoryNode>;
   connections: Array<{
     from_node_id: string;
@@ -39,10 +40,11 @@ interface StoryTree {
 
 interface StoryTreeGraphProps {
   storyData: StoryTree;
-  projectId?: string;  // Add projectId for history functionality
+  projectId?: string;
   onNodeUpdate?: (nodeId: string, updatedNode: StoryNode) => void;
   onApiError?: (error: string) => void;
-  onStoryReload?: () => void;  // Callback to reload entire story after rollback
+  onStoryReload?: () => void;
+  onContinueStory?: (node: StoryNode, action: any, worldState: any, projectId?: string) => void;
 }
 
 // Add interface for context menu
@@ -58,7 +60,8 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({
   projectId,
   onNodeUpdate, 
   onApiError,
-  onStoryReload 
+  onStoryReload,
+  onContinueStory
 }) => {
   const { nodes, connections } = storyData;
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -66,10 +69,11 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({
   const [editFormData, setEditFormData] = useState<{
     scene: string;
     events: Array<{
-      id?: string;
+      id: string;
       speaker: string;
       content: string;
       event_type: string;
+      timestamp: number;
     }>;
     actions: Array<{
       id: string;
@@ -957,9 +961,11 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({
 
   const addEvent = () => {
     const newEvent = {
+      id: `temp_${Date.now()}`,  // Add temporary ID
       speaker: '',
       content: '',
-      event_type: 'dialogue'
+      event_type: 'dialogue',
+      timestamp: Date.now()
     };
     setEditFormData({
       ...editFormData,
@@ -1943,10 +1949,24 @@ const StoryTreeGraph: React.FC<StoryTreeGraphProps> = ({
               (e.target as HTMLElement).style.background = 'transparent';
               (e.target as HTMLElement).style.color = '#2D3748';
             }}
-            onClick={() => contextMenu.nodeId && handleContinueStory(contextMenu.nodeId)}
-          >
-            <span style={{ fontSize: '16px' }}>📖</span>
-            继续故事
+            
+
+            onClick={() => {
+              if (!contextMenu.nodeId) return;
+              if (typeof onContinueStory === 'function') {
+                const node = nodes[contextMenu.nodeId];
+                if (!node) return;
+                const action = node.data.outgoing_actions[0]?.action || null;
+                const worldState = {}; // 或 node.data.world_state || {}，根据你的数据结构
+                console.log('StoryTreeGraph onContinueStory projectId:', projectId);
+                onContinueStory(node, action, worldState, projectId);
+              } else {
+                console.warn('onContinueStory is not a function');
+              }
+            }}
+            >
+              <span style={{ fontSize: '16px' }}>📖</span>
+              继续故事
           </div>
           
           <hr style={{ margin: '8px 0', border: 'none', borderTop: '1px solid #E8E8E8' }} />

@@ -33,20 +33,27 @@ interface ApiError {
 }
 
 export interface Project {
-  id: string;
-  title: string;
-  description: string;
-  world_setting: string;
-  characters: string[];
-  style: string;
-  start_node_id?: string;
-  created_at: string;
-  updated_at: string;
+    id: string;
+    title: string;
+    description?: string;
+    owner_id: string;
+    start_node_id?: string;
+    story_tree?: any;
+    created_at: string;
+    updated_at: string;
 }
 
-const API_BASE_URL = 'http://localhost:8000';
+interface CreateProjectRequest {
+  title: string;
+  description?: string;
+  world_setting?: string;
+  characters?: string[];
+  style?: string;
+}
 
-class AuthService {
+export class AuthService {
+    private API_BASE_URL = 'http://localhost:8000';
+
   private token: string | null = null;
 
   constructor() {
@@ -58,7 +65,7 @@ class AuthService {
     endpoint: string, 
     options: RequestInit = {}
   ): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint}`;
+    const url = `${this.API_BASE_URL}${endpoint}`;  // Fix: use this.API_BASE_URL
     
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -182,6 +189,42 @@ class AuthService {
 
   getToken(): string | null {
     return this.token;
+  }
+
+  async updateProject(projectId: string, data: { start_node_id?: string; story_tree?: any }) {
+    try {
+      return await this.makeRequest(`/projects/${projectId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+      });
+    } catch (error) {
+      console.error('Failed to update project:', error);
+      throw error;
+    }
+  }
+
+  async saveProjectNode(projectId: string, node: any) {
+    try {
+      return await this.makeRequest(`/projects/${projectId}/nodes`, {
+        method: 'POST',
+        body: JSON.stringify({ node })
+      });
+    } catch (error) {
+      console.error('Failed to save node:', error);
+      throw error;
+    }
+  }
+
+  async createProject(data: CreateProjectRequest): Promise<Project> {
+    try {
+      return await this.makeRequest<Project>('/projects', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+    } catch (error) {
+      console.error('Failed to create project:', error);
+      throw error;
+    }
   }
 }
 

@@ -18,6 +18,8 @@ from app.repositories import (
 )
 from app.user_repositories import UserRepository, TokenRepository, SessionRepository, UserPreferencesRepository
 from app.database import StoryEditHistory
+from client.utils.narrative_graph import Node, Action, ActionBinding
+from app.agent.narrative_generator import NarrativeGenerator
 
 # Game-related imports
 import json
@@ -616,22 +618,78 @@ def handle_narrative_request(payload: NarrativePayload, llm_client: LLMClient = 
             # Handle next node generation
             world_state = payload.context.get("world_state", {})
             selected_action = payload.context.get("selected_action")
+            current_node = payload.current_node
             
-            # TODO: Call your NarrativeGenerator.generate_next_node() here
-            result = {
-                "node": {
-                    "scene": "Generated next scene",
+            if not current_node:
+                raise HTTPException(status_code=400, detail="Missing current_node for generate_next_node")
+            
+            try:
+                # Convert current_node to Node object
+                node_data = {
+                    "id": current_node.get("id"),
+                    "scene": current_node.get("data", {}).get("scene", ""),
+                    "node_type": "scene",
                     "events": [],
-                    "actions": []
-                },
-                "world_state": world_state
-            }
-            
-            return NarrativeResponse(
-                success=True,
-                data=result,
-                message="Next node generated"
-            )
+                    "outgoing_actions": []
+                }
+                cur_node = Node.from_dict(node_data)
+                
+                # Create action object if selected
+                selected_action_obj = None
+                if selected_action:
+                    selected_action_obj = Action(
+                        id=selected_action.get("id"),
+                        description=selected_action.get("description", ""),
+                        is_key_action=selected_action.get("is_key_action", False)
+                    )
+                
+                # Initialize NarrativeGenerator with LLM client
+                generator = NarrativeGenerator(llm_client)
+                
+                # Generate next node
+                next_node = generator.generate_next_node(cur_node, world_state, selected_action_obj)
+                
+                # Convert node to response format
+                result = {
+                    "node": {
+                        "id": next_node.id,
+                        "scene": next_node.scene,
+                        "events": [
+                            {
+                                "id": event.id,
+                                "speaker": event.speaker,
+                                "content": event.content,
+                                "event_type": event.event_type,
+                                "timestamp": event.timestamp
+                            }
+                            for event in next_node.events
+                        ],
+                        "outgoing_actions": [
+                            {
+                                "action": {
+                                    "id": binding.action.id,
+                                    "description": binding.action.description,
+                                    "is_key_action": binding.action.is_key_action,
+                                    "metadata": binding.action.metadata
+                                },
+                                "target_node_id": binding.target_node.id if binding.target_node else None
+                            }
+                            for binding in next_node.outgoing_actions
+                        ],
+                        "metadata": next_node.metadata
+                    },
+                    "world_state": next_node.metadata.get("world_state", world_state)
+                }
+                
+                return NarrativeResponse(
+                    success=True,
+                    data=result,
+                    message="Next node generated successfully"
+                )
+                
+            except Exception as e:
+                logger.error(f"Error generating next node: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"Failed to generate next node: {str(e)}")
         
         elif payload.request_type == "apply_action":
             # Handle action application
