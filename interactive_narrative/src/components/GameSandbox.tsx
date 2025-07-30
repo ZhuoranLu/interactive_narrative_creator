@@ -254,7 +254,7 @@ export default function GameSandbox() {
 
   const handleOpenPreview = () => {
     if (previewUrls?.enhanced_preview_url) {
-      const baseUrl = window.location.origin.replace(`:${window.location.port}`, ':8001');
+      const baseUrl = window.location.origin.replace(`:${window.location.port}`, ':8000');
       window.open(`${baseUrl}${previewUrls.enhanced_preview_url}`, '_blank');
     }
   };

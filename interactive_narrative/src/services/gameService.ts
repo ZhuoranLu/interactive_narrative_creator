@@ -1,7 +1,7 @@
 // Game Service for React Frontend
 // Handles game data, asset management, and AI generation
 
-const API_BASE_URL = 'http://localhost:8001/api';
+const API_BASE_URL = 'http://localhost:8000/api';
 
 export interface GameData {
   game_info: {

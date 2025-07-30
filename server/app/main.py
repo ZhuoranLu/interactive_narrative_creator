@@ -20,29 +20,19 @@ from app.user_repositories import UserRepository, TokenRepository, SessionReposi
 from app.database import StoryEditHistory
 from client.utils.narrative_graph import Node, Action, ActionBinding
 from app.agent.narrative_generator import NarrativeGenerator
+from app.routers import game
+from app.deps import create_access_token, get_current_user, TokenData, ACCESS_TOKEN_EXPIRE_MINUTES
 
-# Game-related imports
-import json
-import uuid
-from pathlib import Path
-from fastapi import UploadFile, File
-from fastapi.responses import FileResponse
+# Game-related imports moved to deps.py and routers/game.py
 from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
-# Define game directory path
+# Game directory path for static files
 GAME_DIR = Path(__file__).parent / "agent" / "game"
-game_assets_path = GAME_DIR / "assets"
-game_assets_path.mkdir(parents=True, exist_ok=True)
 
 logger = logging.getLogger(__name__)
 
-# JWT configuration
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
-# Security
-security = HTTPBearer()
+# JWT configuration and Security moved to deps.py
 
 # Global LLM client instance
 llm_client_instance = None
@@ -80,6 +70,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(game.router)
 
 # Pydantic models for requests and responses
 class ProjectCreateRequest(BaseModel):
@@ -242,54 +235,7 @@ class TokenData(BaseModel):
 # AUTHENTICATION FUNCTIONS
 # ====================
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    """Create JWT access token"""
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
-
-def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Verify JWT token"""
-    try:
-        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        user_id: str = payload.get("user_id")
-        if username is None or user_id is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Could not validate credentials",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        token_data = TokenData(username=username, user_id=user_id)
-    except jwt.PyJWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    return token_data
-
-def get_current_user(token_data: TokenData = Depends(verify_token), db: Session = Depends(get_db)):
-    """Get current authenticated user"""
-    user_repo = UserRepository(db)
-    user = user_repo.get_user_by_id(token_data.user_id)
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Inactive user"
-        )
-    return user
+# Authentication functions moved to deps.py
 
 @app.get("/")
 def read_root():
@@ -895,235 +841,15 @@ def logout(current_user = Depends(get_current_user)):
 
 # =================== GAME SANDBOX API ENDPOINTS ===================
 
-# Game data models
-class GameAssetUpload(BaseModel):
-    asset_type: str  # "character", "background", "audio"
-    asset_name: str
-    description: Optional[str] = None
-
-class AIGenerationRequest(BaseModel):
-    asset_type: str  # "character", "background", "audio"
-    prompt: str
-    style: Optional[str] = "anime_style"
-    
-class GameDataResponse(BaseModel):
-    game_info: Dict[str, Any]
-    assets: Dict[str, Any]
-    game_scenes: List[Dict[str, Any]]
+# Game models moved to schemas/game.py
     
 # Mount static files for game assets and preview
+game_assets_path = GAME_DIR / "assets"
+game_assets_path.mkdir(parents=True, exist_ok=True)
 app.mount("/game-assets", StaticFiles(directory=str(game_assets_path)), name="game_assets")
 app.mount("/game-preview", StaticFiles(directory=str(GAME_DIR)), name="game_preview")
 
-@app.get("/api/game/data")
-def get_game_data():
-    """Get current game data"""
-    try:
-        game_data_path = GAME_DIR / "interactive_game_data.json"
-        if not game_data_path.exists():
-            raise HTTPException(status_code=404, detail="Game data not found")
-        
-        with open(game_data_path, 'r', encoding='utf-8') as f:
-            game_data = json.load(f)
-        
-        return GameDataResponse(**game_data)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to load game data: {str(e)}")
-
-@app.get("/api/game/config")
-def get_game_config():
-    """Get game configuration"""
-    try:
-        config_path = GAME_DIR / "web_game_config.json"
-        if not config_path.exists():
-            raise HTTPException(status_code=404, detail="Game config not found")
-        
-        with open(config_path, 'r', encoding='utf-8') as f:
-            config = json.load(f)
-        
-        return config
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to load game config: {str(e)}")
-
-@app.get("/api/game/ai-tasks")
-def get_ai_tasks():
-    """Get AI generation tasks"""
-    try:
-        tasks_path = GAME_DIR / "ai_generation_tasks.json"
-        if not tasks_path.exists():
-            raise HTTPException(status_code=404, detail="AI tasks not found")
-        
-        with open(tasks_path, 'r', encoding='utf-8') as f:
-            tasks = json.load(f)
-        
-        return tasks
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to load AI tasks: {str(e)}")
-
-@app.post("/api/game/assets/upload")
-async def upload_game_asset(
-    asset_type: str,
-    asset_name: str,
-    file: UploadFile = File(...),
-    current_user = Depends(get_current_user)
-):
-    """Upload game asset (image/audio)"""
-    try:
-        # Validate asset type
-        if asset_type not in ["character", "background", "audio"]:
-            raise HTTPException(status_code=400, detail="Invalid asset type")
-        
-        # Create asset directory
-        asset_dir = game_assets_path / asset_type / "user_uploads"
-        asset_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Generate unique filename
-        file_extension = Path(file.filename).suffix
-        unique_filename = f"{asset_name}_{uuid.uuid4().hex[:8]}{file_extension}"
-        file_path = asset_dir / unique_filename
-        
-        # Save file
-        with open(file_path, "wb") as buffer:
-            content = await file.read()
-            buffer.write(content)
-        
-        # Update game data with new asset
-        game_data_path = GAME_DIR / "interactive_game_data.json"
-        if game_data_path.exists():
-            with open(game_data_path, 'r', encoding='utf-8') as f:
-                game_data = json.load(f)
-            
-            # Add user asset to game data
-            if asset_type == "character":
-                game_data["assets"]["characters"][asset_name] = {
-                    "character_name": asset_name,
-                    "user_uploaded": True,
-                    "image_path": f"/game-assets/{asset_type}/user_uploads/{unique_filename}",
-                    "uploaded_by": current_user.username,
-                    "uploaded_at": datetime.now().isoformat()
-                }
-            elif asset_type == "background":
-                game_data["assets"]["backgrounds"][asset_name] = {
-                    "location_name": asset_name,
-                    "user_uploaded": True,
-                    "image_path": f"/game-assets/{asset_type}/user_uploads/{unique_filename}",
-                    "uploaded_by": current_user.username,
-                    "uploaded_at": datetime.now().isoformat()
-                }
-            
-            # Save updated game data
-            with open(game_data_path, 'w', encoding='utf-8') as f:
-                json.dump(game_data, f, ensure_ascii=False, indent=2)
-        
-        return {
-            "message": "Asset uploaded successfully",
-            "asset_path": f"/game-assets/{asset_type}/user_uploads/{unique_filename}",
-            "asset_name": asset_name
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to upload asset: {str(e)}")
-
-@app.post("/api/game/assets/generate")
-async def generate_ai_asset(
-    request: AIGenerationRequest,
-    current_user = Depends(get_current_user)
-):
-    """Generate asset using AI"""
-    try:
-        # This is a placeholder - in real implementation, you would:
-        # 1. Use actual AI service (DALL-E, Midjourney, etc.)
-        # 2. Generate the asset based on the prompt
-        # 3. Save the generated file
-        
-        # For now, return a mock response
-        asset_id = uuid.uuid4().hex[:8]
-        mock_path = f"/game-assets/{request.asset_type}/ai_generated/mock_{asset_id}.png"
-        
-        # Create AI generated directory
-        ai_dir = game_assets_path / request.asset_type / "ai_generated"
-        ai_dir.mkdir(parents=True, exist_ok=True)
-        
-        return {
-            "message": "AI generation request submitted",
-            "asset_id": asset_id,
-            "asset_path": mock_path,
-            "prompt": request.prompt,
-            "style": request.style,
-            "status": "generating",
-            "estimated_completion": "2-5 minutes"
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to generate asset: {str(e)}")
-
-@app.get("/api/game/assets/{asset_type}")
-def list_game_assets(asset_type: str):
-    """List all assets of a specific type"""
-    try:
-        if asset_type not in ["character", "background", "audio"]:
-            raise HTTPException(status_code=400, detail="Invalid asset type")
-        
-        # Load current game data
-        game_data_path = GAME_DIR / "interactive_game_data.json"
-        if not game_data_path.exists():
-            return {"assets": []}
-        
-        with open(game_data_path, 'r', encoding='utf-8') as f:
-            game_data = json.load(f)
-        
-        assets = game_data.get("assets", {}).get(f"{asset_type}s", {})
-        
-        # Add file existence check
-        asset_list = []
-        for name, info in assets.items():
-            asset_info = {
-                "name": name,
-                "info": info,
-                "exists": True  # In real implementation, check file existence
-            }
-            asset_list.append(asset_info)
-        
-        return {"assets": asset_list}
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to list assets: {str(e)}")
-
-@app.post("/api/game/regenerate")
-async def regenerate_game_data():
-    """Regenerate game data from the story tree"""
-    try:
-        # Run the game converter
-        import subprocess
-        
-        result = subprocess.run(
-            ["python3", "simple_game_converter.py"],
-            cwd=GAME_DIR,
-            capture_output=True,
-            text=True
-        )
-        
-        if result.returncode != 0:
-            raise HTTPException(
-                status_code=500, 
-                detail=f"Game generation failed: {result.stderr}"
-            )
-        
-        return {
-            "message": "Game data regenerated successfully",
-            "output": result.stdout
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to regenerate game: {str(e)}")
-
-@app.get("/api/game/preview")
-def get_game_preview_url():
-    """Get game preview URL"""
-    return {
-        "preview_url": "/game-preview/demo_game.html",
-        "enhanced_preview_url": "/game-preview/enhanced_demo_game.html"
-    }
+# Game endpoints moved to routers/game.py
 
 @app.get("/auth/token-balance")
 def get_token_balance(current_user = Depends(get_current_user), db: Session = Depends(get_db)):
