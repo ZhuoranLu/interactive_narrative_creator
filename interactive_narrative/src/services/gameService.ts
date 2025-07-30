@@ -1,7 +1,7 @@
 // Game Service for React Frontend
 // Handles game data, asset management, and AI generation
 
-const API_BASE_URL = 'http://localhost:8080/server/app/agent/game';
+const API_BASE_URL = 'http://localhost:8001/api';
 
 export interface GameData {
   game_info: {
@@ -82,7 +82,7 @@ class GameService {
   }
 
   async getGameData(): Promise<GameData> {
-    const response = await fetch(`${API_BASE_URL}/interactive_game_data.json`);
+    const response = await fetch(`${API_BASE_URL}/game/data`);
     
     if (!response.ok) {
       throw new Error(`Failed to fetch game data: ${response.statusText}`);
@@ -92,7 +92,7 @@ class GameService {
   }
 
   async getGameConfig(): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/web_game_config.json`);
+    const response = await fetch(`${API_BASE_URL}/game/config`);
     
     if (!response.ok) {
       throw new Error(`Failed to fetch game config: ${response.statusText}`);
@@ -102,7 +102,7 @@ class GameService {
   }
 
   async getAITasks(): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/ai_generation_tasks.json`);
+    const response = await fetch(`${API_BASE_URL}/game/ai-tasks`);
     
     if (!response.ok) {
       throw new Error(`Failed to fetch AI tasks: ${response.statusText}`);

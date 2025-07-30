@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@chakra-ui/accordion": "^2.3.1",
+    "@chakra-ui/icons": "^2.2.4",
+    "@chakra-ui/stat": "^2.1.1",
+    "@chakra-ui/tabs": "^3.0.0",
+    "@chakra-ui/toast": "^7.0.2"
+  }
+}

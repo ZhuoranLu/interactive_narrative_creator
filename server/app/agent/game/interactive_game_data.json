@@ -8,38 +8,189 @@
     "generation_note": "此版本使用占位符，可稍后替换为AI生成内容"
   },
   "assets": {
-    "characters": {},
+    "characters": {
+      "哈珀": {
+        "character_name": "哈珀",
+        "character_description": "[AI生成占位符] 角色: 哈珀, 描述: 待生成...",
+        "art_style": "anime_dating_game_character",
+        "placeholder_image": "assets/characters/哈珀.png",
+        "prompt_for_ai": "请为角色 '哈珀' 生成立绘。风格: 恋爱游戏动漫风格。",
+        "generation_status": "pending",
+        "expressions": [
+          "default",
+          "happy",
+          "sad",
+          "angry",
+          "surprised"
+        ]
+      },
+      "神秘来电者": {
+        "character_name": "神秘来电者",
+        "character_description": "[AI生成占位符] 角色: 神秘来电者, 描述: 待生成...",
+        "art_style": "anime_dating_game_character",
+        "placeholder_image": "assets/characters/神秘来电者.png",
+        "prompt_for_ai": "请为角色 '神秘来电者' 生成立绘。风格: 恋爱游戏动漫风格。",
+        "generation_status": "pending",
+        "expressions": [
+          "default",
+          "happy",
+          "sad",
+          "angry",
+          "surprised"
+        ]
+      },
+      "神秘身影": {
+        "character_name": "神秘身影",
+        "character_description": "[AI生成占位符] 角色: 神秘身影, 描述: 待生成...",
+        "art_style": "anime_dating_game_character",
+        "placeholder_image": "assets/characters/神秘身影.png",
+        "prompt_for_ai": "请为角色 '神秘身影' 生成立绘。风格: 恋爱游戏动漫风格。",
+        "generation_status": "pending",
+        "expressions": [
+          "default",
+          "happy",
+          "sad",
+          "angry",
+          "surprised"
+        ]
+      },
+      "侦探哈珀": {
+        "character_name": "侦探哈珀",
+        "character_description": "[AI生成占位符] 角色: 侦探哈珀, 描述: 待生成...",
+        "art_style": "anime_dating_game_character",
+        "placeholder_image": "assets/characters/侦探哈珀.png",
+        "prompt_for_ai": "请为角色 '侦探哈珀' 生成立绘。风格: 恋爱游戏动漫风格。",
+        "generation_status": "pending",
+        "expressions": [
+          "default",
+          "happy",
+          "sad",
+          "angry",
+          "surprised"
+        ]
+      },
+      "路人甲": {
+        "character_name": "路人甲",
+        "character_description": "[AI生成占位符] 角色: 路人甲, 描述: 待生成...",
+        "art_style": "anime_dating_game_character",
+        "placeholder_image": "assets/characters/路人甲.png",
+        "prompt_for_ai": "请为角色 '路人甲' 生成立绘。风格: 恋爱游戏动漫风格。",
+        "generation_status": "pending",
+        "expressions": [
+          "default",
+          "happy",
+          "sad",
+          "angry",
+          "surprised"
+        ]
+      },
+      "瘦削身影": {
+        "character_name": "瘦削身影",
+        "character_description": "[AI生成占位符] 角色: 瘦削身影, 描述: 待生成...",
+        "art_style": "anime_dating_game_character",
+        "placeholder_image": "assets/characters/瘦削身影.png",
+        "prompt_for_ai": "请为角色 '瘦削身影' 生成立绘。风格: 恋爱游戏动漫风格。",
+        "generation_status": "pending",
+        "expressions": [
+          "default",
+          "happy",
+          "sad",
+          "angry",
+          "surprised"
+        ]
+      },
+      "路人乙": {
+        "character_name": "路人乙",
+        "character_description": "[AI生成占位符] 角色: 路人乙, 描述: 待生成...",
+        "art_style": "anime_dating_game_character",
+        "placeholder_image": "assets/characters/路人乙.png",
+        "prompt_for_ai": "请为角色 '路人乙' 生成立绘。风格: 恋爱游戏动漫风格。",
+        "generation_status": "pending",
+        "expressions": [
+          "default",
+          "happy",
+          "sad",
+          "angry",
+          "surprised"
+        ]
+      },
+      "醉酒男子": {
+        "character_name": "醉酒男子",
+        "character_description": "[AI生成占位符] 角色: 醉酒男子, 描述: 待生成...",
+        "art_style": "anime_dating_game_character",
+        "placeholder_image": "assets/characters/醉酒男子.png",
+        "prompt_for_ai": "请为角色 '醉酒男子' 生成立绘。风格: 恋爱游戏动漫风格。",
+        "generation_status": "pending",
+        "expressions": [
+          "default",
+          "happy",
+          "sad",
+          "angry",
+          "surprised"
+        ]
+      },
+      "酒吧老板": {
+        "character_name": "酒吧老板",
+        "character_description": "[AI生成占位符] 角色: 酒吧老板, 描述: 待生成...",
+        "art_style": "anime_dating_game_character",
+        "placeholder_image": "assets/characters/酒吧老板.png",
+        "prompt_for_ai": "请为角色 '酒吧老板' 生成立绘。风格: 恋爱游戏动漫风格。",
+        "generation_status": "pending",
+        "expressions": [
+          "default",
+          "happy",
+          "sad",
+          "angry",
+          "surprised"
+        ]
+      },
+      "酒保": {
+        "character_name": "酒保",
+        "character_description": "[AI生成占位符] 角色: 酒保, 描述: 待生成...",
+        "art_style": "anime_dating_game_character",
+        "placeholder_image": "assets/characters/酒保.png",
+        "prompt_for_ai": "请为角色 '酒保' 生成立绘。风格: 恋爱游戏动漫风格。",
+        "generation_status": "pending",
+        "expressions": [
+          "default",
+          "happy",
+          "sad",
+          "angry",
+          "surprised"
+        ]
+      }
+    },
     "backgrounds": {
       "场景1": {
         "location_name": "场景1",
-        "background_description": "[AI生成占位符] 场景: 场景1, 描述: 一家陈旧的酒吧，空气中弥漫着烟草和酒精的味道，吧台的木质表面满是划痕，外面街道湿润而寒冷。 ...",
+        "background_description": "[AI生成占位符] 场景: 场景1, 描述: 废弃停车场，周围铁网生锈，墙壁破败，地面布满积水，远处的黑暗深处隐约传来微弱的声音。",
         "art_style": "cinematic_dating_game_background",
         "placeholder_image": "assets/backgrounds/场景1.jpg",
-        "prompt_for_ai": "请为场景 '场景1' 生成背景图。场景描述: 一家陈旧的酒吧，空气中弥漫着烟草和酒精的味道，吧台的木质表面满是划痕，外面街道湿润而寒冷。 。风格: 恋爱游戏电影化背景。",
+        "prompt_for_ai": "请为场景 '场景1' 生成背景图。场景描述: 废弃停车场，周围铁网生锈，墙壁破败，地面布满积水，远处的黑暗深处隐约传来微弱的声音。 。风格: 恋爱游戏电影化背景。",
         "generation_status": "pending"
       },
       "场景2": {
         "location_name": "场景2",
-        "background_description": "[AI生成占位符] 场景: 场景2, 描述: 废弃的停车场，四周环绕着生锈的铁网与残破的墙壁，远处的黑色轿车尾灯一闪而灭。 ...",
+        "background_description": "[AI生成占位符] 场景: 场景2, 描述: 侦探哈珀的办公室，位于城市边缘的一栋老旧公寓楼中，室内昏暗且凌乱，墙角的收音机播放着断断续续的爵士乐。",
         "art_style": "cinematic_dating_game_background",
         "placeholder_image": "assets/backgrounds/场景2.jpg",
-        "prompt_for_ai": "请为场景 '场景2' 生成背景图。场景描述: 废弃的停车场，四周环绕着生锈的铁网与残破的墙壁，远处的黑色轿车尾灯一闪而灭。 。风格: 恋爱游戏电影化背景。",
+        "prompt_for_ai": "请为场景 '场景2' 生成背景图。场景描述: 侦探哈珀的办公室，位于城市边缘的一栋老旧公寓楼中，室内昏暗且凌乱，墙角的收音机播放着断断续续的爵士乐。 。风格: 恋爱游戏电影化背景。",
         "generation_status": "pending"
       },
       "场景3": {
         "location_name": "场景3",
-        "background_description": "[AI生成占位符] 场景: 场景3, 描述: 侦探哈珀的办公室，位于城市边缘的一栋老旧公寓楼中，室内昏暗且凌乱，墙角的收音机播放着断断续续的爵士乐。 ...",
+        "background_description": "[AI生成占位符] 场景: 场景3, 描述: 一家陈旧的酒吧，空气中弥漫着烟草和酒精的味道，吧台的木质表面满是划痕，外面街道湿润而寒冷。",
         "art_style": "cinematic_dating_game_background",
         "placeholder_image": "assets/backgrounds/场景3.jpg",
-        "prompt_for_ai": "请为场景 '场景3' 生成背景图。场景描述: 侦探哈珀的办公室，位于城市边缘的一栋老旧公寓楼中，室内昏暗且凌乱，墙角的收音机播放着断断续续的爵士乐。 。风格: 恋爱游戏电影化背景。",
+        "prompt_for_ai": "请为场景 '场景3' 生成背景图。场景描述: 一家陈旧的酒吧，空气中弥漫着烟草和酒精的味道，吧台的木质表面满是划痕，外面街道湿润而寒冷。 。风格: 恋爱游戏电影化背景。",
         "generation_status": "pending"
       },
       "场景4": {
         "location_name": "场景4",
-        "background_description": "[AI生成占位符] 场景: 场景4, 描述: 废弃停车场，周围铁网生锈，墙壁破败，地面布满积水，远处的黑暗深处隐约传来微弱的声音。 ...",
+        "background_description": "[AI生成占位符] 场景: 场景4, 描述: 废弃的停车场，四周环绕着生锈的铁网与残破的墙壁，远处的黑色轿车尾灯一闪而灭。",
         "art_style": "cinematic_dating_game_background",
         "placeholder_image": "assets/backgrounds/场景4.jpg",
-        "prompt_for_ai": "请为场景 '场景4' 生成背景图。场景描述: 废弃停车场，周围铁网生锈，墙壁破败，地面布满积水，远处的黑暗深处隐约传来微弱的声音。 。风格: 恋爱游戏电影化背景。",
+        "prompt_for_ai": "请为场景 '场景4' 生成背景图。场景描述: 废弃的停车场，四周环绕着生锈的铁网与残破的墙壁，远处的黑色轿车尾灯一闪而灭。 。风格: 恋爱游戏电影化背景。",
         "generation_status": "pending"
       }
     },
@@ -49,7 +200,58 @@
         "prompt_for_ai": "请生成悬疑浪漫风格的背景音乐",
         "generation_status": "pending"
       },
-      "voice_clips": {},
+      "voice_clips": {
+        "voice_醉酒男子_1": {
+          "placeholder_file": "assets/audio/voice_醉酒男子_1.mp3",
+          "prompt_for_ai": "请为dialogue生成配音: 嘿，老板，再来一杯，我告诉你，那场雨啊，简直像是天在哭泣！哈，可惜没人听得懂，没人啊！...",
+          "generation_status": "pending"
+        },
+        "voice__2": {
+          "placeholder_file": "assets/audio/voice__2.mp3",
+          "prompt_for_ai": "请为narration生成配音: 一只流浪猫从停车场的角落窜过，它的毛发湿透，尾巴拖着污泥，在夜色里发出细微的抓地声，随即钻进一辆废弃小轿车底下，消失不见。...",
+          "generation_status": "pending"
+        },
+        "voice_酒吧老板_3": {
+          "placeholder_file": "assets/audio/voice_酒吧老板_3.mp3",
+          "prompt_for_ai": "请为dialogue生成配音: 你听过那个传闻吗？有人说，这条街上每到下雨就能听见女人的哭声。嘿，别问我信不信，我只负责倒酒。...",
+          "generation_status": "pending"
+        },
+        "voice__4": {
+          "placeholder_file": "assets/audio/voice__4.mp3",
+          "prompt_for_ai": "请为narration生成配音: 酒吧门外，一辆老式出租车的引擎声渐渐远去，尾灯在湿漉漉的街道上拉出一道长长的红色痕迹。远处的霓虹灯牌闪烁不定，仿佛在和夜色展开一场漫长的对峙。...",
+          "generation_status": "pending"
+        },
+        "voice__1": {
+          "placeholder_file": "assets/audio/voice__1.mp3",
+          "prompt_for_ai": "请为narration生成配音: 酒吧角落的老式唱片机正缓缓转动，播放着一首年代久远的爵士乐，音符时而拖长，时而戛然而止，仿佛对酒吧沉闷气氛的一种嘲讽。唱片机旁的灰尘在昏黄灯光下显得格外明显，像无人理会的时间痕迹。...",
+          "generation_status": "pending"
+        },
+        "voice_路人甲_2": {
+          "placeholder_file": "assets/audio/voice_路人甲_2.mp3",
+          "prompt_for_ai": "请为dialogue生成配音: 听说昨晚在码头那边又出事了，一个人莫名其妙地失踪了。真是怪事，这城市最近越来越不对劲了。...",
+          "generation_status": "pending"
+        },
+        "voice__3": {
+          "placeholder_file": "assets/audio/voice__3.mp3",
+          "prompt_for_ai": "请为narration生成配音: 远处街道的霓虹灯闪烁不定，红色与绿色交替着像某种心跳的信号，而一盏路灯忽然啪地熄灭，留下黑暗吞噬那片街角。...",
+          "generation_status": "pending"
+        },
+        "voice_醉酒男子_4": {
+          "placeholder_file": "assets/audio/voice_醉酒男子_4.mp3",
+          "prompt_for_ai": "请为dialogue生成配音: 嘿，酒保，再来一杯！你知道吗，这城市藏着太多秘密，连黑夜都不知道该怎么掩盖它们。...",
+          "generation_status": "pending"
+        },
+        "voice_路人甲_1": {
+          "placeholder_file": "assets/audio/voice_路人甲_1.mp3",
+          "prompt_for_ai": "请为dialogue生成配音: 听说了吗？昨晚在隔壁街区，有人看到警车停了一整夜，像是出了什么大事。...",
+          "generation_status": "pending"
+        },
+        "voice_路人乙_4": {
+          "placeholder_file": "assets/audio/voice_路人乙_4.mp3",
+          "prompt_for_ai": "请为dialogue生成配音: 我跟你说，这地方最近越来越不安全了。昨天晚上我听到枪声——几声，短促的，像是有人在警告什么。...",
+          "generation_status": "pending"
+        }
+      },
       "sound_effects": {
         "placeholder_file": "assets/audio/ui_sounds.mp3",
         "prompt_for_ai": "请生成UI交互音效合集",
@@ -61,7 +263,7 @@
     {
       "scene_id": "aa8fa799-253d-4f01-9489-67d2cc62a6f4",
       "scene_title": "第1章",
-      "background_image": "assets/backgrounds/default.jpg",
+      "background_image": "assets/backgrounds/场景3.jpg",
       "background_music": "assets/audio/bgm_main.mp3",
       "content_sequence": [
         {
@@ -71,55 +273,74 @@
           "display_duration": 5000,
           "voice_clip": {
             "placeholder_file": "assets/audio/narration_aa8fa799.mp3",
-            "prompt_for_ai": "请为以下旁白生成配音: 午夜的酒吧，像一口深藏秘密的旧匣子，沉沉地压在城市的边缘地带。空气中漂浮着陈年的烟草味和酒精蒸汽，昏...",
+            "prompt_for_ai": "请为以下旁白生成配音: 午夜的酒吧，像一口深藏秘密的旧匣子，沉沉地压在城市的边缘地带。空气中漂浮着陈年的烟草味和酒精蒸汽，昏黄的灯光在玻璃杯上打出弯曲的光影，仿佛一场迷乱的幻觉。侦探哈珀坐在吧台的一角，手边是一杯尚未饮尽的波...",
             "generation_status": "pending"
           }
         },
         {
           "type": "dialogue",
-          "speaker": "醉酒男子",
           "text": "嘿，老板，再来一杯，我告诉你，那场雨啊，简直像是天在哭泣！哈，可惜没人听得懂，没人啊！",
-          "character_image": "",
+          "speaker": "醉酒男子",
+          "display_duration": 3000,
+          "character_image": "assets/characters/醉酒男子.png",
           "voice_clip": {
             "placeholder_file": "assets/audio/voice_醉酒男子_1.mp3",
-            "prompt_for_ai": "请为角色 '醉酒男子' 的这句话生成配音: 嘿，老板，再来一杯，我告诉你，那场雨啊，简直像是天在哭泣！哈，可惜没人听得懂，没人啊！",
+            "prompt_for_ai": "请为dialogue生成配音: 嘿，老板，再来一杯，我告诉你，那场雨啊，简直像是天在哭泣！哈，可惜没人听得懂，没人啊！...",
             "generation_status": "pending"
           }
         },
         {
           "type": "narration",
           "text": "酒吧角落里，一台老旧的点唱机发出断断续续的低语，一首上世纪的爵士曲目在它疲惫的喇叭中挣扎着流淌。曲调时而模糊，仿佛乐手的灵魂被困在这时间的夹缝里，无法逃脱。",
-          "speaker": "旁白",
+          "speaker": "",
           "display_duration": 3000,
           "voice_clip": {
-            "placeholder_file": "assets/audio/narration_event_2.mp3",
-            "prompt_for_ai": "请为环境描述生成配音: 酒吧角落里，一台老旧的点唱机发出断断续续的低语，一首上世纪的爵士曲目在它疲惫的喇叭中挣扎着流淌。曲调时而模糊，仿佛乐手的灵魂被困在这时间的夹缝里，无法逃脱。",
+            "placeholder_file": "assets/audio/voice__2.mp3",
+            "prompt_for_ai": "请为narration生成配音: 酒吧角落里，一台老旧的点唱机发出断断续续的低语，一首上世纪的爵士曲目在它疲惫的喇叭中挣扎着流淌。曲调时而模糊，仿佛乐手的灵魂被困在这时间的夹缝里，无法逃脱。...",
             "generation_status": "pending"
           }
         },
         {
           "type": "dialogue",
-          "speaker": "酒吧老板",
           "text": "你听过那个传闻吗？有人说，这条街上每到下雨就能听见女人的哭声。嘿，别问我信不信，我只负责倒酒。",
-          "character_image": "",
+          "speaker": "酒吧老板",
+          "display_duration": 3000,
+          "character_image": "assets/characters/酒吧老板.png",
           "voice_clip": {
             "placeholder_file": "assets/audio/voice_酒吧老板_3.mp3",
-            "prompt_for_ai": "请为角色 '酒吧老板' 的这句话生成配音: 你听过那个传闻吗？有人说，这条街上每到下雨就能听见女人的哭声。嘿，别问我信不信，我只负责倒酒。",
+            "prompt_for_ai": "请为dialogue生成配音: 你听过那个传闻吗？有人说，这条街上每到下雨就能听见女人的哭声。嘿，别问我信不信，我只负责倒酒。...",
             "generation_status": "pending"
           }
         },
         {
           "type": "narration",
           "text": "酒吧门外，一辆老式出租车的引擎声渐渐远去，尾灯在湿漉漉的街道上拉出一道长长的红色痕迹。远处的霓虹灯牌闪烁不定，仿佛在和夜色展开一场漫长的对峙。",
-          "speaker": "旁白",
+          "speaker": "",
           "display_duration": 3000,
           "voice_clip": {
-            "placeholder_file": "assets/audio/narration_event_4.mp3",
-            "prompt_for_ai": "请为环境描述生成配音: 酒吧门外，一辆老式出租车的引擎声渐渐远去，尾灯在湿漉漉的街道上拉出一道长长的红色痕迹。远处的霓虹灯牌闪烁不定，仿佛在和夜色展开一场漫长的对峙。",
+            "placeholder_file": "assets/audio/voice__4.mp3",
+            "prompt_for_ai": "请为narration生成配音: 酒吧门外，一辆老式出租车的引擎声渐渐远去，尾灯在湿漉漉的街道上拉出一道长长的红色痕迹。远处的霓虹灯牌闪烁不定，仿佛在和夜色展开一场漫长的对峙。...",
             "generation_status": "pending"
           }
         }
       ],
+      "scene_metadata": {
+        "world_state": {
+          "time": "午夜时分，刚刚经历了一场骤雨，城市边缘地带的酒吧昏黄灯光下显得格外阴郁。",
+          "location": "一家陈旧的酒吧，空气中弥漫着烟草和酒精的味道，吧台的木质表面满是划痕，外面街道湿润而寒冷。",
+          "characters": {
+            "哈珀": "疲惫的侦探，穿着沾着雨水痕迹的风衣，神色凝重，手边是一杯尚未饮尽的波本酒。",
+            "酒保": "沉默的中年男子，对酒吧内的氛围习以为常，动作缓慢却精准。",
+            "神秘来电者": "声音低沉却颤抖，透着紧张和急迫，似乎掌握着克莱尔失踪案的关键信息。"
+          },
+          "key_facts": [
+            "克莱尔失踪案是哈珀最近接触的一个长期未解案件。",
+            "酒吧的电话几乎没人使用，来电显得异常突兀。",
+            "神秘来电者似乎与案件有直接关联，但身份未知。"
+          ],
+          "story_variable_1": "酒吧所在的街区以其隐秘性和复杂的人际关系著称，是许多非法交易和秘密聚会的发生地。"
+        }
+      },
       "player_choices": [
         {
           "choice_id": "action_1",
@@ -177,33 +398,12 @@
             "generation_status": "pending"
           }
         }
-      ],
-      "scene_metadata": {
-        "world_state": {
-          "time": "午夜时分，刚刚经历了一场骤雨，城市边缘地带的酒吧昏黄灯光下显得格外阴郁。",
-          "location": "一家陈旧的酒吧，空气中弥漫着烟草和酒精的味道，吧台的木质表面满是划痕，外面街道湿润而寒冷。",
-          "characters": {
-            "哈珀": "疲惫的侦探，穿着沾着雨水痕迹的风衣，神色凝重，手边是一杯尚未饮尽的波本酒。",
-            "酒保": "沉默的中年男子，对酒吧内的氛围习以为常，动作缓慢却精准。",
-            "神秘来电者": "声音低沉却颤抖，透着紧张和急迫，似乎掌握着克莱尔失踪案的关键信息。"
-          },
-          "key_facts": [
-            "克莱尔失踪案是哈珀最近接触的一个长期未解案件。",
-            "酒吧的电话几乎没人使用，来电显得异常突兀。",
-            "神秘来电者似乎与案件有直接关联，但身份未知。"
-          ],
-          "story_variable_1": "酒吧所在的街区以其隐秘性和复杂的人际关系著称，是许多非法交易和秘密聚会的发生地。"
-        },
-        "scene_type": "scene",
-        "estimated_reading_time": 34,
-        "character_count": 2,
-        "choice_count": 4
-      }
+      ]
     },
     {
       "scene_id": "31e5e8a6-d90f-4be3-b06f-31e1c24b3020",
       "scene_title": "第2章",
-      "background_image": "assets/backgrounds/default.jpg",
+      "background_image": "assets/backgrounds/场景4.jpg",
       "background_music": "assets/audio/bgm_main.mp3",
       "content_sequence": [
         {
@@ -213,55 +413,86 @@
           "display_duration": 5000,
           "voice_clip": {
             "placeholder_file": "assets/audio/narration_31e5e8a6.mp3",
-            "prompt_for_ai": "请为以下旁白生成配音: 雨水拍打着地面，仿佛城市在午夜时分吐露的低语。哈珀裹紧风衣，踩着湿滑的街道匆匆前行。空气中弥漫着沥青...",
+            "prompt_for_ai": "请为以下旁白生成配音: 雨水拍打着地面，仿佛城市在午夜时分吐露的低语。哈珀裹紧风衣，踩着湿滑的街道匆匆前行。空气中弥漫着沥青的潮湿气味，路灯昏暗的光线勉强划开夜的浓雾。他的鞋底踏过积水，溅起细碎的涟漪，仿佛连这雨夜都在暗中窥...",
             "generation_status": "pending"
           }
         },
         {
           "type": "narration",
           "text": "酒吧角落的老式唱片机正缓缓转动，播放着一首年代久远的爵士乐，音符时而拖长，时而戛然而止，仿佛对酒吧沉闷气氛的一种嘲讽。唱片机旁的灰尘在昏黄灯光下显得格外明显，像无人理会的时间痕迹。",
-          "speaker": "旁白",
+          "speaker": "",
           "display_duration": 3000,
           "voice_clip": {
-            "placeholder_file": "assets/audio/narration_event_1.mp3",
-            "prompt_for_ai": "请为环境描述生成配音: 酒吧角落的老式唱片机正缓缓转动，播放着一首年代久远的爵士乐，音符时而拖长，时而戛然而止，仿佛对酒吧沉闷气氛的一种嘲讽。唱片机旁的灰尘在昏黄灯光下显得格外明显，像无人理会的时间痕迹。",
+            "placeholder_file": "assets/audio/voice__1.mp3",
+            "prompt_for_ai": "请为narration生成配音: 酒吧角落的老式唱片机正缓缓转动，播放着一首年代久远的爵士乐，音符时而拖长，时而戛然而止，仿佛对酒吧沉闷气氛的一种嘲讽。唱片机旁的灰尘在昏黄灯光下显得格外明显，像无人理会的时间痕迹。...",
             "generation_status": "pending"
           }
         },
         {
           "type": "dialogue",
-          "speaker": "路人甲",
           "text": "听说昨晚在码头那边又出事了，一个人莫名其妙地失踪了。真是怪事，这城市最近越来越不对劲了。",
-          "character_image": "",
+          "speaker": "路人甲",
+          "display_duration": 3000,
+          "character_image": "assets/characters/路人甲.png",
           "voice_clip": {
             "placeholder_file": "assets/audio/voice_路人甲_2.mp3",
-            "prompt_for_ai": "请为角色 '路人甲' 的这句话生成配音: 听说昨晚在码头那边又出事了，一个人莫名其妙地失踪了。真是怪事，这城市最近越来越不对劲了。",
+            "prompt_for_ai": "请为dialogue生成配音: 听说昨晚在码头那边又出事了，一个人莫名其妙地失踪了。真是怪事，这城市最近越来越不对劲了。...",
             "generation_status": "pending"
           }
         },
         {
           "type": "narration",
           "text": "窗外传来轻微的车轮碾过积水的声响，伴随着隐约的远处警笛声，雨水在街灯下反射出晦暗的光，像一张模糊不清的油画。偶尔有湿漉漉的脚步声从酒吧门前经过，却没有人停下。",
-          "speaker": "旁白",
+          "speaker": "",
           "display_duration": 3000,
           "voice_clip": {
-            "placeholder_file": "assets/audio/narration_event_3.mp3",
-            "prompt_for_ai": "请为环境描述生成配音: 窗外传来轻微的车轮碾过积水的声响，伴随着隐约的远处警笛声，雨水在街灯下反射出晦暗的光，像一张模糊不清的油画。偶尔有湿漉漉的脚步声从酒吧门前经过，却没有人停下。",
+            "placeholder_file": "assets/audio/voice__3.mp3",
+            "prompt_for_ai": "请为narration生成配音: 窗外传来轻微的车轮碾过积水的声响，伴随着隐约的远处警笛声，雨水在街灯下反射出晦暗的光，像一张模糊不清的油画。偶尔有湿漉漉的脚步声从酒吧门前经过，却没有人停下。...",
             "generation_status": "pending"
           }
         },
         {
           "type": "dialogue",
-          "speaker": "醉酒男子",
           "text": "嘿，酒保，再来一杯！你知道吗，这城市藏着太多秘密，连黑夜都不知道该怎么掩盖它们。",
-          "character_image": "",
+          "speaker": "醉酒男子",
+          "display_duration": 3000,
+          "character_image": "assets/characters/醉酒男子.png",
           "voice_clip": {
             "placeholder_file": "assets/audio/voice_醉酒男子_4.mp3",
-            "prompt_for_ai": "请为角色 '醉酒男子' 的这句话生成配音: 嘿，酒保，再来一杯！你知道吗，这城市藏着太多秘密，连黑夜都不知道该怎么掩盖它们。",
+            "prompt_for_ai": "请为dialogue生成配音: 嘿，酒保，再来一杯！你知道吗，这城市藏着太多秘密，连黑夜都不知道该怎么掩盖它们。...",
             "generation_status": "pending"
           }
         }
       ],
+      "scene_metadata": {
+        "world_state": {
+          "time": "午夜时分，雨水持续拍打着地面，空气中弥漫着潮湿与紧张感。",
+          "location": "废弃的停车场，四周环绕着生锈的铁网与残破的墙壁，远处的黑色轿车尾灯一闪而灭。",
+          "characters": {
+            "哈珀": "身着风衣，脸上带着雨水和疲惫，手指警觉地触摸着风衣内侧的枪套，目光锐利地环顾四周。",
+            "神秘身影": "瘦削的身影，站在停车场阴影中，声音沙哑却冷静，气场压抑而隐秘。"
+          },
+          "key_facts": [
+            "电话来电者自称知晓克莱尔失踪案的真相。",
+            "约定的见面地点为废弃停车场，环境阴暗潮湿，充满不安的氛围。"
+          ],
+          "story_variable_1": "黑色轿车尾灯的闪烁暗示可能有第三方在场。",
+          "action_history": [
+            {
+              "type": "continue_action",
+              "action": "匆忙离开酒吧，与神秘来电者约定的地点见面。",
+              "effects": "主人公进入一个未知的街角，发现线索可能隐藏在危机中，同时天气持续恶劣，增加紧张氛围。"
+            },
+            {
+              "type": "continue_action",
+              "action": "哈珀决定直接走向瘦削身影，尝试逼问对方有关克莱尔失踪案的线索。",
+              "effects": "瘦削身影透露出部分重要信息，但同时警告哈珀他正在被跟踪，局势变得更加危险。"
+            }
+          ],
+          "story_variable_2": "哈珀的枪套暗示可能会出现危险或冲突。",
+          "story_variable_3": "停车场的潮湿与残破环境象征案件的复杂性和隐秘性。"
+        }
+      },
       "player_choices": [
         {
           "choice_id": "action_1",
@@ -319,45 +550,12 @@
             "generation_status": "pending"
           }
         }
-      ],
-      "scene_metadata": {
-        "world_state": {
-          "time": "午夜时分，雨水持续拍打着地面，空气中弥漫着潮湿与紧张感。",
-          "location": "废弃的停车场，四周环绕着生锈的铁网与残破的墙壁，远处的黑色轿车尾灯一闪而灭。",
-          "characters": {
-            "哈珀": "身着风衣，脸上带着雨水和疲惫，手指警觉地触摸着风衣内侧的枪套，目光锐利地环顾四周。",
-            "神秘身影": "瘦削的身影，站在停车场阴影中，声音沙哑却冷静，气场压抑而隐秘。"
-          },
-          "key_facts": [
-            "电话来电者自称知晓克莱尔失踪案的真相。",
-            "约定的见面地点为废弃停车场，环境阴暗潮湿，充满不安的氛围。"
-          ],
-          "story_variable_1": "黑色轿车尾灯的闪烁暗示可能有第三方在场。",
-          "action_history": [
-            {
-              "type": "continue_action",
-              "action": "匆忙离开酒吧，与神秘来电者约定的地点见面。",
-              "effects": "主人公进入一个未知的街角，发现线索可能隐藏在危机中，同时天气持续恶劣，增加紧张氛围。"
-            },
-            {
-              "type": "continue_action",
-              "action": "哈珀决定直接走向瘦削身影，尝试逼问对方有关克莱尔失踪案的线索。",
-              "effects": "瘦削身影透露出部分重要信息，但同时警告哈珀他正在被跟踪，局势变得更加危险。"
-            }
-          ],
-          "story_variable_2": "哈珀的枪套暗示可能会出现危险或冲突。",
-          "story_variable_3": "停车场的潮湿与残破环境象征案件的复杂性和隐秘性。"
-        },
-        "scene_type": "scene",
-        "estimated_reading_time": 33,
-        "character_count": 2,
-        "choice_count": 4
-      }
+      ]
     },
     {
       "scene_id": "8df3c67f-cd72-4b99-8e95-e79c1eb7d74a",
       "scene_title": "第2章",
-      "background_image": "assets/backgrounds/default.jpg",
+      "background_image": "assets/backgrounds/场景2.jpg",
       "background_music": "assets/audio/bgm_main.mp3",
       "content_sequence": [
         {
@@ -367,11 +565,36 @@
           "display_duration": 5000,
           "voice_clip": {
             "placeholder_file": "assets/audio/narration_8df3c67f.mp3",
-            "prompt_for_ai": "请为以下旁白生成配音: 街灯的光晕在湿漉漉的街道上拉出模糊的影子，哈珀的脚步声在空旷的巷子里回荡。他拢紧风衣，将酒吧带出的半...",
+            "prompt_for_ai": "请为以下旁白生成配音: 街灯的光晕在湿漉漉的街道上拉出模糊的影子，哈珀的脚步声在空旷的巷子里回荡。他拢紧风衣，将酒吧带出的半杯波本紧紧攥在手中，冰凉的玻璃杯透过手套传来微弱的刺痛。办公室的大门吱嘎一声打开，室内昏暗的灯光与外...",
             "generation_status": "pending"
           }
         }
       ],
+      "scene_metadata": {
+        "world_state": {
+          "time": "凌晨1:47，雨后的寂静街道与昏暗的办公室内。",
+          "location": "侦探哈珀的办公室，位于城市边缘的一栋老旧公寓楼中，室内昏暗且凌乱，墙角的收音机播放着断断续续的爵士乐。",
+          "characters": {
+            "侦探哈珀": "疲惫且警觉，内心在未知的危险与追寻真相之间挣扎，手边是翻开的笔记本和那张陌生地址的纸条。",
+            "神秘来电者": "声音低沉且紧张，提供了与克莱尔失踪案相关的重要信息，同时发出警告，身份未知。"
+          },
+          "key_facts": [
+            "克莱尔失踪前最后被目击的地点是纸条上的地址。",
+            "神秘来电者警告哈珀不要前往该地址。",
+            "电话铃声与警告的时间点异常敏感，似乎有人在暗中监控哈珀的行动。"
+          ],
+          "story_variable_1": "纸条上的地址：红柳街47号。",
+          "action_history": [
+            {
+              "type": "continue_action",
+              "action": "带着波本酒离开酒吧，回到自己的办公室整理思路，尝试解读来电者提供的信息。",
+              "effects": "办公室场景开启，主人公发现线索中包含某种危险的暗示，氛围更加悬疑。"
+            }
+          ],
+          "story_variable_2": "来电者的身份和意图仍是谜团。",
+          "story_variable_3": "哈珀的内心开始怀疑，这件案子背后的真相可能触及更深的黑暗势力。"
+        }
+      },
       "player_choices": [
         {
           "choice_id": "action_1",
@@ -429,41 +652,12 @@
             "generation_status": "pending"
           }
         }
-      ],
-      "scene_metadata": {
-        "world_state": {
-          "time": "凌晨1:47，雨后的寂静街道与昏暗的办公室内。",
-          "location": "侦探哈珀的办公室，位于城市边缘的一栋老旧公寓楼中，室内昏暗且凌乱，墙角的收音机播放着断断续续的爵士乐。",
-          "characters": {
-            "侦探哈珀": "疲惫且警觉，内心在未知的危险与追寻真相之间挣扎，手边是翻开的笔记本和那张陌生地址的纸条。",
-            "神秘来电者": "声音低沉且紧张，提供了与克莱尔失踪案相关的重要信息，同时发出警告，身份未知。"
-          },
-          "key_facts": [
-            "克莱尔失踪前最后被目击的地点是纸条上的地址。",
-            "神秘来电者警告哈珀不要前往该地址。",
-            "电话铃声与警告的时间点异常敏感，似乎有人在暗中监控哈珀的行动。"
-          ],
-          "story_variable_1": "纸条上的地址：红柳街47号。",
-          "action_history": [
-            {
-              "type": "continue_action",
-              "action": "带着波本酒离开酒吧，回到自己的办公室整理思路，尝试解读来电者提供的信息。",
-              "effects": "办公室场景开启，主人公发现线索中包含某种危险的暗示，氛围更加悬疑。"
-            }
-          ],
-          "story_variable_2": "来电者的身份和意图仍是谜团。",
-          "story_variable_3": "哈珀的内心开始怀疑，这件案子背后的真相可能触及更深的黑暗势力。"
-        },
-        "scene_type": "scene",
-        "estimated_reading_time": 46,
-        "character_count": 0,
-        "choice_count": 4
-      }
+      ]
     },
     {
       "scene_id": "b06606d4-eb29-40ec-8b98-4dc6ccbe98ad",
       "scene_title": "第3章",
-      "background_image": "assets/backgrounds/default.jpg",
+      "background_image": "assets/backgrounds/场景1.jpg",
       "background_music": "assets/audio/bgm_main.mp3",
       "content_sequence": [
         {
@@ -473,55 +667,87 @@
           "display_duration": 5000,
           "voice_clip": {
             "placeholder_file": "assets/audio/narration_b06606d4.mp3",
-            "prompt_for_ai": "请为以下旁白生成配音: 哈珀的脚步在潮湿的水泥地上回响，像微弱的心跳声在雨夜中挣扎。他一步步逼近那瘦削的身影，手指悄然滑向风...",
+            "prompt_for_ai": "请为以下旁白生成配音: 哈珀的脚步在潮湿的水泥地上回响，像微弱的心跳声在雨夜中挣扎。他一步步逼近那瘦削的身影，手指悄然滑向风衣内侧的枪套，眼神如鹰般锐利地捕捉着每一丝细节。那人站在雨幕之中，肩膀微微颤抖，像风中的枯叶。他的脸...",
             "generation_status": "pending"
           }
         },
         {
           "type": "dialogue",
-          "speaker": "路人甲",
           "text": "听说了吗？昨晚在隔壁街区，有人看到警车停了一整夜，像是出了什么大事。",
-          "character_image": "",
+          "speaker": "路人甲",
+          "display_duration": 3000,
+          "character_image": "assets/characters/路人甲.png",
           "voice_clip": {
             "placeholder_file": "assets/audio/voice_路人甲_1.mp3",
-            "prompt_for_ai": "请为角色 '路人甲' 的这句话生成配音: 听说了吗？昨晚在隔壁街区，有人看到警车停了一整夜，像是出了什么大事。",
+            "prompt_for_ai": "请为dialogue生成配音: 听说了吗？昨晚在隔壁街区，有人看到警车停了一整夜，像是出了什么大事。...",
             "generation_status": "pending"
           }
         },
         {
           "type": "narration",
           "text": "一只流浪猫从停车场的角落窜过，它的毛发湿透，尾巴拖着污泥，在夜色里发出细微的抓地声，随即钻进一辆废弃小轿车底下，消失不见。",
-          "speaker": "旁白",
+          "speaker": "",
           "display_duration": 3000,
           "voice_clip": {
-            "placeholder_file": "assets/audio/narration_event_2.mp3",
-            "prompt_for_ai": "请为环境描述生成配音: 一只流浪猫从停车场的角落窜过，它的毛发湿透，尾巴拖着污泥，在夜色里发出细微的抓地声，随即钻进一辆废弃小轿车底下，消失不见。",
+            "placeholder_file": "assets/audio/voice__2.mp3",
+            "prompt_for_ai": "请为narration生成配音: 一只流浪猫从停车场的角落窜过，它的毛发湿透，尾巴拖着污泥，在夜色里发出细微的抓地声，随即钻进一辆废弃小轿车底下，消失不见。...",
             "generation_status": "pending"
           }
         },
         {
           "type": "narration",
           "text": "远处街道的霓虹灯闪烁不定，红色与绿色交替着像某种心跳的信号，而一盏路灯忽然啪地熄灭，留下黑暗吞噬那片街角。",
-          "speaker": "旁白",
+          "speaker": "",
           "display_duration": 3000,
           "voice_clip": {
-            "placeholder_file": "assets/audio/narration_event_3.mp3",
-            "prompt_for_ai": "请为环境描述生成配音: 远处街道的霓虹灯闪烁不定，红色与绿色交替着像某种心跳的信号，而一盏路灯忽然啪地熄灭，留下黑暗吞噬那片街角。",
+            "placeholder_file": "assets/audio/voice__3.mp3",
+            "prompt_for_ai": "请为narration生成配音: 远处街道的霓虹灯闪烁不定，红色与绿色交替着像某种心跳的信号，而一盏路灯忽然啪地熄灭，留下黑暗吞噬那片街角。...",
             "generation_status": "pending"
           }
         },
         {
           "type": "dialogue",
-          "speaker": "路人乙",
           "text": "我跟你说，这地方最近越来越不安全了。昨天晚上我听到枪声——几声，短促的，像是有人在警告什么。",
-          "character_image": "",
+          "speaker": "路人乙",
+          "display_duration": 3000,
+          "character_image": "assets/characters/路人乙.png",
           "voice_clip": {
             "placeholder_file": "assets/audio/voice_路人乙_4.mp3",
-            "prompt_for_ai": "请为角色 '路人乙' 的这句话生成配音: 我跟你说，这地方最近越来越不安全了。昨天晚上我听到枪声——几声，短促的，像是有人在警告什么。",
+            "prompt_for_ai": "请为dialogue生成配音: 我跟你说，这地方最近越来越不安全了。昨天晚上我听到枪声——几声，短促的，像是有人在警告什么。...",
             "generation_status": "pending"
           }
         }
       ],
+      "scene_metadata": {
+        "world_state": {
+          "time": "午夜时分，雨势逐渐减弱，空气中弥漫着潮湿的寒意。",
+          "location": "废弃停车场，周围铁网生锈，墙壁破败，地面布满积水，远处的黑暗深处隐约传来微弱的声音。",
+          "characters": {
+            "哈珀": "警觉且焦虑，手指始终在风衣内侧枪套附近，试图寻找关于克莱尔失踪案的线索。",
+            "瘦削身影": "神秘且不安，透露模糊信息后迅速消失，留下一个线索地址作为指引。"
+          },
+          "key_facts": [
+            "克莱尔失踪案可能与猫眼酒吧有关。",
+            "停车场深处出现了未知的活动，可能存在潜在威胁。",
+            "瘦削身影警告哈珀有人正在监视他。"
+          ],
+          "story_variable_1": "猫眼酒吧地址：位于旧城区边缘，曾是地下交易的据点。",
+          "action_history": [
+            {
+              "type": "continue_action",
+              "action": "匆忙离开酒吧，与神秘来电者约定的地点见面。",
+              "effects": "主人公进入一个未知的街角，发现线索可能隐藏在危机中，同时天气持续恶劣，增加紧张氛围。"
+            },
+            {
+              "type": "continue_action",
+              "action": "哈珀决定直接走向瘦削身影，尝试逼问对方有关克莱尔失踪案的线索。",
+              "effects": "瘦削身影透露出部分重要信息，但同时警告哈珀他正在被跟踪，局势变得更加危险。"
+            }
+          ],
+          "weather": "雨势减弱但仍有零星小雨，夜雾浓重，能见度低。",
+          "threat_level": "高，未知势力正在介入调查，潜在危险增多。"
+        }
+      },
       "player_choices": [
         {
           "choice_id": "action_1",
@@ -579,41 +805,7 @@
             "generation_status": "pending"
           }
         }
-      ],
-      "scene_metadata": {
-        "world_state": {
-          "time": "午夜时分，雨势逐渐减弱，空气中弥漫着潮湿的寒意。",
-          "location": "废弃停车场，周围铁网生锈，墙壁破败，地面布满积水，远处的黑暗深处隐约传来微弱的声音。",
-          "characters": {
-            "哈珀": "警觉且焦虑，手指始终在风衣内侧枪套附近，试图寻找关于克莱尔失踪案的线索。",
-            "瘦削身影": "神秘且不安，透露模糊信息后迅速消失，留下一个线索地址作为指引。"
-          },
-          "key_facts": [
-            "克莱尔失踪案可能与猫眼酒吧有关。",
-            "停车场深处出现了未知的活动，可能存在潜在威胁。",
-            "瘦削身影警告哈珀有人正在监视他。"
-          ],
-          "story_variable_1": "猫眼酒吧地址：位于旧城区边缘，曾是地下交易的据点。",
-          "action_history": [
-            {
-              "type": "continue_action",
-              "action": "匆忙离开酒吧，与神秘来电者约定的地点见面。",
-              "effects": "主人公进入一个未知的街角，发现线索可能隐藏在危机中，同时天气持续恶劣，增加紧张氛围。"
-            },
-            {
-              "type": "continue_action",
-              "action": "哈珀决定直接走向瘦削身影，尝试逼问对方有关克莱尔失踪案的线索。",
-              "effects": "瘦削身影透露出部分重要信息，但同时警告哈珀他正在被跟踪，局势变得更加危险。"
-            }
-          ],
-          "weather": "雨势减弱但仍有零星小雨，夜雾浓重，能见度低。",
-          "threat_level": "高，未知势力正在介入调查，潜在危险增多。"
-        },
-        "scene_type": "scene",
-        "estimated_reading_time": 35,
-        "character_count": 2,
-        "choice_count": 4
-      }
+      ]
     }
   ],
   "scene_connections": [
@@ -636,16 +828,5 @@
       "action_description": "哈珀决定直接走向瘦削身影，尝试逼问对方有关克莱尔失踪案的线索。"
     }
   ],
-  "start_scene_id": "aa8fa799-253d-4f01-9489-67d2cc62a6f4",
-  "ai_generation_tasks": {
-    "character_art_count": 0,
-    "background_art_count": 4,
-    "voice_clips_needed": [
-      "醉酒男子_voice",
-      "酒吧老板_voice",
-      "路人甲_voice",
-      "路人乙_voice"
-    ],
-    "music_tracks_needed": 1
-  }
+  "start_scene_id": "aa8fa799-253d-4f01-9489-67d2cc62a6f4"
 }

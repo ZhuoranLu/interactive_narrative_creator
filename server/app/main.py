@@ -27,6 +27,11 @@ from fastapi import UploadFile, File
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+# Define game directory path
+GAME_DIR = Path(__file__).parent / "agent" / "game"
+game_assets_path = GAME_DIR / "assets"
+game_assets_path.mkdir(parents=True, exist_ok=True)
+
 logger = logging.getLogger(__name__)
 
 # JWT configuration
@@ -848,16 +853,15 @@ class GameDataResponse(BaseModel):
     assets: Dict[str, Any]
     game_scenes: List[Dict[str, Any]]
     
-# Mount static files for game assets
-game_assets_path = Path("app/agent/game/assets")
-game_assets_path.mkdir(parents=True, exist_ok=True)
+# Mount static files for game assets and preview
 app.mount("/game-assets", StaticFiles(directory=str(game_assets_path)), name="game_assets")
+app.mount("/game-preview", StaticFiles(directory=str(GAME_DIR)), name="game_preview")
 
 @app.get("/api/game/data")
 def get_game_data():
     """Get current game data"""
     try:
-        game_data_path = Path("app/agent/game/interactive_game_data.json")
+        game_data_path = GAME_DIR / "interactive_game_data.json"
         if not game_data_path.exists():
             raise HTTPException(status_code=404, detail="Game data not found")
         
@@ -872,7 +876,7 @@ def get_game_data():
 def get_game_config():
     """Get game configuration"""
     try:
-        config_path = Path("app/agent/game/web_game_config.json")
+        config_path = GAME_DIR / "web_game_config.json"
         if not config_path.exists():
             raise HTTPException(status_code=404, detail="Game config not found")
         
@@ -887,7 +891,7 @@ def get_game_config():
 def get_ai_tasks():
     """Get AI generation tasks"""
     try:
-        tasks_path = Path("app/agent/game/ai_generation_tasks.json")
+        tasks_path = GAME_DIR / "ai_generation_tasks.json"
         if not tasks_path.exists():
             raise HTTPException(status_code=404, detail="AI tasks not found")
         
@@ -926,7 +930,7 @@ async def upload_game_asset(
             buffer.write(content)
         
         # Update game data with new asset
-        game_data_path = Path("app/agent/game/interactive_game_data.json")
+        game_data_path = GAME_DIR / "interactive_game_data.json"
         if game_data_path.exists():
             with open(game_data_path, 'r', encoding='utf-8') as f:
                 game_data = json.load(f)
@@ -1003,7 +1007,7 @@ def list_game_assets(asset_type: str):
             raise HTTPException(status_code=400, detail="Invalid asset type")
         
         # Load current game data
-        game_data_path = Path("app/agent/game/interactive_game_data.json")
+        game_data_path = GAME_DIR / "interactive_game_data.json"
         if not game_data_path.exists():
             return {"assets": []}
         
@@ -1029,16 +1033,14 @@ def list_game_assets(asset_type: str):
 
 @app.post("/api/game/regenerate")
 async def regenerate_game_data():
-    """Regenerate game data from story tree"""
+    """Regenerate game data from the story tree"""
     try:
         # Run the game converter
         import subprocess
-        import os
         
-        game_dir = Path("app/agent/game")
         result = subprocess.run(
             ["python3", "simple_game_converter.py"],
-            cwd=game_dir,
+            cwd=GAME_DIR,
             capture_output=True,
             text=True
         )
@@ -1061,8 +1063,8 @@ async def regenerate_game_data():
 def get_game_preview_url():
     """Get game preview URL"""
     return {
-        "preview_url": "/game-preview",
-        "enhanced_preview_url": "/game-preview-enhanced"
+        "preview_url": "/game-preview/demo_game.html",
+        "enhanced_preview_url": "/game-preview/enhanced_demo_game.html"
     }
 
 @app.get("/auth/token-balance")
