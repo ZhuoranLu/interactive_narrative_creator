@@ -20,7 +20,7 @@ from app.user_repositories import UserRepository, TokenRepository, SessionReposi
 from app.database import StoryEditHistory
 from client.utils.narrative_graph import Node, Action, ActionBinding
 from app.agent.narrative_generator import NarrativeGenerator
-from app.routers import game
+from app.routers import game, editor
 from app.deps import create_access_token, get_current_user, TokenData, ACCESS_TOKEN_EXPIRE_MINUTES
 
 # Game-related imports moved to deps.py and routers/game.py
@@ -73,6 +73,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(game.router)
+app.include_router(editor.router)
 
 # Pydantic models for requests and responses
 class ProjectCreateRequest(BaseModel):
