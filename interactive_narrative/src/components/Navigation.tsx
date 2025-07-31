@@ -57,6 +57,14 @@ const Navigation: React.FC<NavigationProps> = ({ currentUser, onLogout }) => {
                 🎮 游戏沙盒
               </Link>
             </li>
+            <li>
+              <Link 
+                to="/template-editor" 
+                className={`nav-link ${isActive('/template-editor') ? 'active' : ''}`}
+              >
+                🎨 模板编辑器
+              </Link>
+            </li>
           </ul>
         </nav>
         <div className="user-info">
