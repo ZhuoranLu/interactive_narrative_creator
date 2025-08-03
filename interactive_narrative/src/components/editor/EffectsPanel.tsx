@@ -77,29 +77,29 @@ const EffectsPanel: React.FC<EffectsPanelProps> = ({
   };
 
   return (
-    <Box h="100%" bg="white" display="flex" flexDirection="column">
+    <Box h="100%" bg="#111318" display="flex" flexDirection="column">
       {/* Header */}
       <Box 
         px={4} 
         py={3} 
         borderBottom="1px solid" 
-        borderColor="gray.200"
-        bg="white"
+        borderColor="#2d2e37"
+        bg="#1a1b23"
       >
         <HStack justify="space-between" align="center">
-          <Text fontSize="sm" fontWeight="600" color="gray.900">
+          <Text fontSize="md" fontWeight="600" color="#f8fafc">
             Effects Library
           </Text>
           {selectedElement && (
             <Box 
               px={2} 
               py={1} 
-              bg="purple.50" 
+              bg="#312e81" 
               borderRadius="md"
               border="1px solid"
-              borderColor="purple.200"
+              borderColor="#4f46e5"
             >
-              <Text fontSize="xs" color="purple.700" fontWeight="500">
+              <Text fontSize="xs" color="#a5b4fc" fontWeight="500">
                 {selectedElement}
               </Text>
             </Box>
@@ -113,27 +113,42 @@ const EffectsPanel: React.FC<EffectsPanelProps> = ({
         overflowY="auto" 
         px={4} 
         py={3}
-        bg="gray.50"
+        bg="#0f1419"
+        css={{
+          '&::-webkit-scrollbar': {
+            width: '6px',
+          },
+          '&::-webkit-scrollbar-track': {
+            background: '#1a1b23',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            background: '#374151',
+            borderRadius: '3px',
+          },
+          '&::-webkit-scrollbar-thumb:hover': {
+            background: '#4b5563',
+          },
+        }}
       >
         {selectedElement ? (
           <VStack gap={3} align="stretch">
-            <Text fontSize="xs" color="gray.600" fontWeight="500" mb={2}>
+            <Text fontSize="xs" color="#6b7280" fontWeight="500" mb={2}>
               Apply to selected element:
             </Text>
             
             {effects.map((effect) => (
               <Box
                 key={effect.type}
-                bg="white"
+                bg="#1e293b"
                 p={3}
                 borderRadius="md"
                 border="1px solid"
-                borderColor="gray.200"
+                borderColor="#374151"
                 cursor="pointer"
                 transition="all 0.15s ease"
                 _hover={{
-                  borderColor: 'purple.300',
-                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
+                  borderColor: '#6366f1',
+                  boxShadow: '0 2px 4px #6366f133',
                   transform: 'translateY(-1px)'
                 }}
                 onClick={() => handleApplyEffect(effect)}
@@ -141,10 +156,10 @@ const EffectsPanel: React.FC<EffectsPanelProps> = ({
                 <HStack gap={3} align="start">
                   <Text fontSize="lg">{effect.icon}</Text>
                   <Box flex="1">
-                    <Text fontSize="sm" fontWeight="500" color="gray.900" mb={1}>
+                    <Text fontSize="sm" fontWeight="500" color="#f1f5f9" mb={1}>
                       {effect.name}
                     </Text>
-                    <Text fontSize="xs" color="gray.600" lineHeight="1.3">
+                    <Text fontSize="xs" color="#94a3b8" lineHeight="1.3">
                       {effect.description}
                     </Text>
                   </Box>
@@ -165,13 +180,13 @@ const EffectsPanel: React.FC<EffectsPanelProps> = ({
             py={12}
             px={4}
           >
-            <Text fontSize="lg" color="gray.400" mb={2}>
+            <Text fontSize="lg" color="#6b7280" mb={2}>
               🎯
             </Text>
-            <Text fontSize="sm" color="gray.500" fontWeight="500" mb={1}>
+            <Text fontSize="sm" color="#9ca3af" fontWeight="500" mb={1}>
               No element selected
             </Text>
-            <Text fontSize="xs" color="gray.400">
+            <Text fontSize="xs" color="#6b7280">
               Select an element on the canvas to apply effects
             </Text>
           </Box>
@@ -183,10 +198,10 @@ const EffectsPanel: React.FC<EffectsPanelProps> = ({
         px={4} 
         py={3} 
         borderTop="1px solid" 
-        borderColor="gray.200"
-        bg="white"
+        borderColor="#2d2e37"
+        bg="#1a1b23"
       >
-        <Text fontSize="xs" color="gray.500" textAlign="center">
+        <Text fontSize="xs" color="#6b7280" textAlign="center">
           Effects are applied instantly to the selected element
         </Text>
       </Box>

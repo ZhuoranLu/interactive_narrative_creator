@@ -45,6 +45,19 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ selectedElement, onUp
     });
   };
 
+  const selectStyle = {
+    width: '100%',
+    padding: '8px 12px',
+    fontSize: '14px',
+    backgroundColor: '#1e293b',
+    border: '1px solid #374151',
+    borderRadius: '6px',
+    color: '#f1f5f9',
+    outline: 'none',
+    transition: 'all 0.2s',
+    cursor: 'pointer'
+  };
+
   return (
     <VStack gap={4} align="stretch" p={4}>
       {/* 元素信息 */}
@@ -164,23 +177,23 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ selectedElement, onUp
             <Text fontSize="xs" color="#94a3b8" mb={1}>
               Font Weight
             </Text>
-            <HStack gap={2}>
-              {['normal', 'bold', '100', '200', '300', '400', '500', '600', '700', '800', '900'].map((weight) => (
-                <Button
-                  key={weight}
-                  size="xs"
-                  variant={selectedElement.style.fontWeight === weight ? 'solid' : 'outline'}
-                  onClick={() => handleStyleUpdate('fontWeight', weight)}
-                  bg={selectedElement.style.fontWeight === weight ? '#6366f1' : 'transparent'}
-                  color={selectedElement.style.fontWeight === weight ? 'white' : '#f1f5f9'}
-                  border="1px solid"
-                  borderColor="#374151"
-                  _hover={{ bg: selectedElement.style.fontWeight === weight ? '#5855eb' : '#374151' }}
-                >
-                  {weight}
-                </Button>
-              ))}
-            </HStack>
+            <select
+              style={selectStyle}
+              value={selectedElement.style.fontWeight || 'normal'}
+              onChange={(e) => handleStyleUpdate('fontWeight', e.target.value)}
+            >
+              <option value="normal">Normal</option>
+              <option value="bold">Bold</option>
+              <option value="100">100</option>
+              <option value="200">200</option>
+              <option value="300">300</option>
+              <option value="400">400</option>
+              <option value="500">500</option>
+              <option value="600">600</option>
+              <option value="700">700</option>
+              <option value="800">800</option>
+              <option value="900">900</option>
+            </select>
           </Box>
 
           {/* 字体样式 */}
@@ -188,23 +201,15 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ selectedElement, onUp
             <Text fontSize="xs" color="#94a3b8" mb={1}>
               Font Style
             </Text>
-            <HStack gap={2}>
-              {['normal', 'italic', 'oblique'].map((style) => (
-                <Button
-                  key={style}
-                  size="xs"
-                  variant={selectedElement.style.fontStyle === style ? 'solid' : 'outline'}
-                  onClick={() => handleStyleUpdate('fontStyle', style)}
-                  bg={selectedElement.style.fontStyle === style ? '#6366f1' : 'transparent'}
-                  color={selectedElement.style.fontStyle === style ? 'white' : '#f1f5f9'}
-                  border="1px solid"
-                  borderColor="#374151"
-                  _hover={{ bg: selectedElement.style.fontStyle === style ? '#5855eb' : '#374151' }}
-                >
-                  {style}
-                </Button>
-              ))}
-            </HStack>
+            <select
+              style={selectStyle}
+              value={selectedElement.style.fontStyle || 'normal'}
+              onChange={(e) => handleStyleUpdate('fontStyle', e.target.value)}
+            >
+              <option value="normal">Normal</option>
+              <option value="italic">Italic</option>
+              <option value="oblique">Oblique</option>
+            </select>
           </Box>
 
           {/* 文本对齐 */}
@@ -212,23 +217,16 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ selectedElement, onUp
             <Text fontSize="xs" color="#94a3b8" mb={1}>
               Text Align
             </Text>
-            <HStack gap={2}>
-              {['left', 'center', 'right', 'justify'].map((align) => (
-                <Button
-                  key={align}
-                  size="xs"
-                  variant={selectedElement.style.textAlign === align ? 'solid' : 'outline'}
-                  onClick={() => handleStyleUpdate('textAlign', align)}
-                  bg={selectedElement.style.textAlign === align ? '#6366f1' : 'transparent'}
-                  color={selectedElement.style.textAlign === align ? 'white' : '#f1f5f9'}
-                  border="1px solid"
-                  borderColor="#374151"
-                  _hover={{ bg: selectedElement.style.textAlign === align ? '#5855eb' : '#374151' }}
-                >
-                  {align}
-                </Button>
-              ))}
-            </HStack>
+            <select
+              style={selectStyle}
+              value={selectedElement.style.textAlign || 'left'}
+              onChange={(e) => handleStyleUpdate('textAlign', e.target.value)}
+            >
+              <option value="left">Left</option>
+              <option value="center">Center</option>
+              <option value="right">Right</option>
+              <option value="justify">Justify</option>
+            </select>
           </Box>
 
           {/* 颜色设置 */}
@@ -371,23 +369,17 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ selectedElement, onUp
             <Text fontSize="xs" color="#94a3b8" mb={1}>
               Border Style
             </Text>
-            <HStack gap={2}>
-              {['none', 'solid', 'dashed', 'dotted', 'double'].map((style) => (
-                <Button
-                  key={style}
-                  size="xs"
-                  variant={selectedElement.style.borderStyle === style ? 'solid' : 'outline'}
-                  onClick={() => handleStyleUpdate('borderStyle', style)}
-                  bg={selectedElement.style.borderStyle === style ? '#6366f1' : 'transparent'}
-                  color={selectedElement.style.borderStyle === style ? 'white' : '#f1f5f9'}
-                  border="1px solid"
-                  borderColor="#374151"
-                  _hover={{ bg: selectedElement.style.borderStyle === style ? '#5855eb' : '#374151' }}
-                >
-                  {style}
-                </Button>
-              ))}
-            </HStack>
+            <select
+              style={selectStyle}
+              value={selectedElement.style.borderStyle || 'none'}
+              onChange={(e) => handleStyleUpdate('borderStyle', e.target.value)}
+            >
+              <option value="none">None</option>
+              <option value="solid">Solid</option>
+              <option value="dashed">Dashed</option>
+              <option value="dotted">Dotted</option>
+              <option value="double">Double</option>
+            </select>
           </Box>
         </VStack>
       </Box>

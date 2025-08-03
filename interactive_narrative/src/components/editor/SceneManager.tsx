@@ -1,12 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
-  VStack,
-  HStack,
   Text,
+  VStack,
+  Select,
   Button
 } from '@chakra-ui/react';
-import { GameTemplate, TemplateElement } from './types';
+import { GameTemplate } from './types';
 
 interface SceneManagerProps {
   gameData: GameTemplate | null;
@@ -85,7 +85,7 @@ const SceneManager: React.FC<SceneManagerProps> = ({
                 <Box
                   key={choice.choice_id}
                   p={2}
-                  bg="rgba(30, 41, 59, 0.8)"
+                  bg="#1e293bcc"
                   borderRadius="md"
                   border="1px solid"
                   borderColor="#475569"

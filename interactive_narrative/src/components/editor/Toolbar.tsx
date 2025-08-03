@@ -8,10 +8,6 @@ import {
 
 interface ToolbarProps {
   currentTemplate: string;
-  onImportTemplate: () => void;
-  onResetToDefault: () => void;
-  onPreview: () => void;
-  onTestChoices?: () => void;
   onToggleAIAssistant: () => void;
   onToggleEffects: () => void;
   activePanel: 'chat' | 'effects' | null;
@@ -24,10 +20,6 @@ interface ToolbarProps {
 
 const Toolbar: React.FC<ToolbarProps> = ({
   currentTemplate,
-  onImportTemplate,
-  onResetToDefault,
-  onPreview,
-  onTestChoices,
   onToggleAIAssistant,
   onToggleEffects,
   activePanel,
@@ -37,6 +29,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   canvasSize,
   onCanvasSizeChange
 }) => {
+
   return (
     <Box
       bg="#111318"
@@ -102,7 +95,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
           </Text>
         </Box>
 
-        {/* 右侧AI Assistant和Effects按钮 */}
+        {/* 右侧操作按钮 */}
         <HStack gap={2}>
           <Button
             size="sm"

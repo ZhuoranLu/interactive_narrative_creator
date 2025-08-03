@@ -1,12 +1,8 @@
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import {
   Box,
-  VStack,
-  HStack,
   Text,
-  Badge,
-  Input,
-  Button
+  VStack
 } from '@chakra-ui/react';
 import { TemplateElement } from './types';
 import CanvasToolbar from './CanvasToolbar';
@@ -23,8 +19,6 @@ interface CanvasProps {
   elementRefs: React.MutableRefObject<{ [key: string]: HTMLDivElement | null }>;
   onImportTemplate: () => void;
   onResetToDefault: () => void;
-  onPreview: () => void;
-  onTestChoices?: () => void;
   onZoomChange: (zoom: number) => void;
   onFitToScreen: () => void;
   canvasRef: React.RefObject<HTMLDivElement>;
@@ -42,8 +36,6 @@ const Canvas: React.FC<CanvasProps> = ({
   elementRefs,
   onImportTemplate,
   onResetToDefault,
-  onPreview,
-  onTestChoices,
   onZoomChange,
   onFitToScreen,
   canvasRef
@@ -64,29 +56,16 @@ const Canvas: React.FC<CanvasProps> = ({
   };
 
   const getElementTypeName = (type: string) => {
-    const names = {
+    const typeNames: { [key: string]: string } = {
       'background': 'Background',
       'dialogue': 'Dialogue Box',
       'character': 'Character',
+      'choices': 'Choices Area',
       'text': 'Text',
-      'button': 'Button',
-      'choices': 'Choices',
-      'choice-button': 'Choice Button',
-      'narration': 'Narration'
+      'choice-button': 'Choice Button'
     };
-    return names[type as keyof typeof names] || 'Element';
+    return typeNames[type] || type;
   };
-
-
-
-  // 计算内容缩放比例
-  const getContentScale = () => {
-    const scaleX = 800 / canvasSize.width;
-    const scaleY = 600 / canvasSize.height;
-    return Math.min(scaleX, scaleY, 1); // 不超过1，避免放大
-  };
-
-  const contentScale = getContentScale();
 
   return (
     <Box
@@ -104,8 +83,6 @@ const Canvas: React.FC<CanvasProps> = ({
       <CanvasToolbar
         onImportTemplate={onImportTemplate}
         onResetToDefault={onResetToDefault}
-        onPreview={onPreview}
-        onTestChoices={onTestChoices}
         zoom={zoom}
         onZoomChange={onZoomChange}
         onFitToScreen={onFitToScreen}
@@ -114,11 +91,11 @@ const Canvas: React.FC<CanvasProps> = ({
       />
 
 
-      {/* 画布容器 - 固定大小 */}
+      {/* 画布容器 - 动态大小 */}
       <Box
         position="relative"
-        w="800px"
-        h="600px"
+        w={`${canvasSize.width}px`}
+        h={`${canvasSize.height}px`}
         bg="transparent"
         transform={`scale(${zoom})`}
         transformOrigin="center center"
@@ -131,30 +108,24 @@ const Canvas: React.FC<CanvasProps> = ({
           justifyContent: 'center'
         }}
       >
-        {/* 内容区域 - 可调整大小 */}
+        {/* 内容区域 - 与容器大小一致 */}
         <Box
           data-canvas-content
           position="relative"
-          w={`${canvasSize.width}px`}
-          h={`${canvasSize.height}px`}
+          w="100%"
+          h="100%"
           bg="transparent"
-          style={{
-            transformOrigin: 'center',
-            transform: `scale(${contentScale})`,
-            maxWidth: '100%',
-            maxHeight: '100%'
-          }}
         >
-          {/* 背景元素 - 强制左上角对齐 */}
+          {/* 背景元素 - 强制左上角对齐，不受缩放影响 */}
           {elements.filter(element => element.type === 'background').map((element) => (
             <Box
               key={element.id}
               ref={(el: HTMLDivElement | null) => (elementRefs.current[element.id] = el)}
               position="absolute"
-              left={`${element.position.x}px`}
-              top={`${element.position.y}px`}
-              width={`${element.size.width}px`}
-              height={`${element.size.height}px`}
+              left="0"
+              top="0"
+              width="100%"
+              height="100%"
               style={{
                 ...element.style,
                 cursor: 'pointer',
@@ -384,20 +355,10 @@ const Canvas: React.FC<CanvasProps> = ({
       </Box>
 
       {/* 缩放指示器 */}
-      <Box
-        position="absolute"
-        bottom="20px"
-        right="20px"
-        bg="rgba(0, 0, 0, 0.8)"
-        color="white"
-        px={3}
-        py={2}
-        borderRadius="8px"
-        fontSize="sm"
-      >
+      <Box position="absolute" top={2} right={2} bg="rgba(0, 0, 0, 0.8)" p={2} borderRadius="md" zIndex={100}>
         <VStack gap={1} align="start">
           <Text fontSize="xs">View Zoom: {Math.round(zoom * 100)}%</Text>
-          <Text fontSize="xs">Content Scale: {Math.round(contentScale * 100)}%</Text>
+          <Text fontSize="xs">Canvas Size: {canvasSize.width}×{canvasSize.height}</Text>
         </VStack>
       </Box>
     </Box>

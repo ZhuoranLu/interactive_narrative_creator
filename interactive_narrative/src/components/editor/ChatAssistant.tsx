@@ -144,17 +144,6 @@ What specific change would you like to make?`;
           <Text fontSize="md" fontWeight="600" color="#f8fafc">
             AI Assistant
           </Text>
-          <Box
-            px={2}
-            py={1}
-            bg="#10b981"
-            borderRadius="full"
-            fontSize="xs"
-            fontWeight="500"
-            color="white"
-          >
-            Online
-          </Box>
         </HStack>
       </Box>
 

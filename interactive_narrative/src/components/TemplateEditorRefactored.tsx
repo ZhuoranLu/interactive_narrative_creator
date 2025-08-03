@@ -99,8 +99,8 @@ const TemplateEditorRefactored: React.FC = () => {
     {
       id: 'dialogue-box',
       type: 'dialogue',
-      position: { x: 50, y: 400 },
-      size: { width: 700, height: 150 },
+      position: { x: 50, y: size.height - 170 },
+      size: { width: size.width - 100, height: 150 },
       style: {
         background: 'rgba(30, 41, 59, 0.95)',
         fontSize: '14px',
@@ -116,7 +116,7 @@ const TemplateEditorRefactored: React.FC = () => {
     {
       id: 'character',
       type: 'character',
-      position: { x: 300, y: 100 },
+      position: { x: size.width - 250, y: 100 },
       size: { width: 200, height: 300 },
       style: {
         background: 'rgba(99, 102, 241, 0.2)',
@@ -132,10 +132,10 @@ const TemplateEditorRefactored: React.FC = () => {
     {
       id: 'choices-area',
       type: 'choices',
-      position: { x: 50, y: 580 },
-      size: { width: 700, height: 100 },
+      position: { x: 50, y: size.height - 120 },
+      size: { width: size.width - 100, height: 100 },
       style: {
-        background: 'rgba(30, 41, 59, 0.8)',
+        background: '#1e293bcc',
         fontSize: '12px',
         color: '#cbd5e1',
         opacity: 0.9,
@@ -189,7 +189,7 @@ const TemplateEditorRefactored: React.FC = () => {
           {
             id: 'scene-title',
             type: 'text',
-            position: { x: 250, y: 40 },
+            position: { x: canvasSize.width / 2 - 150, y: 40 },
             size: { width: 300, height: 40 },
             style: {
               background: 'transparent',
@@ -205,10 +205,10 @@ const TemplateEditorRefactored: React.FC = () => {
           {
             id: 'character-portrait',
             type: 'character',
-            position: { x: 550, y: 100 },
+            position: { x: canvasSize.width - 250, y: 100 },
             size: { width: 200, height: 300 },
             style: {
-              background: 'rgba(99, 102, 241, 0.1)',
+              background: '#6366f11a',
               fontSize: '12px',
               color: '#a5b4fc',
               opacity: 0.8,
@@ -222,7 +222,7 @@ const TemplateEditorRefactored: React.FC = () => {
           {
             id: 'speaker-name',
             type: 'text',
-            position: { x: 50, y: 400 },
+            position: { x: 50, y: canvasSize.height - 170 },
             size: { width: 200, height: 30 },
             style: {
               background: 'transparent',
@@ -237,8 +237,8 @@ const TemplateEditorRefactored: React.FC = () => {
           {
             id: 'dialogue-box',
             type: 'dialogue',
-            position: { x: 0, y: 430 },
-            size: { width: 800, height: 120 },
+            position: { x: 0, y: canvasSize.height - 120 },
+            size: { width: canvasSize.width, height: 120 },
             style: {
               background: 'linear-gradient(135deg, rgba(44, 44, 84, 0.95) 0%, rgba(52, 58, 94, 0.95) 100%)',
               fontSize: '14px',
@@ -255,7 +255,7 @@ const TemplateEditorRefactored: React.FC = () => {
           ...(scene.player_choices?.map((choice, index) => ({
             id: `choice-${choice.choice_id}`,
             type: 'choice-button',
-            position: { x: 400, y: 200 + (index * 60) },
+            position: { x: canvasSize.width / 2 - 175, y: canvasSize.height / 2 - 100 + (index * 60) },
             size: { width: 350, height: 50 },
             style: {
               background: 'rgba(255, 255, 255, 0.1)',
@@ -335,7 +335,7 @@ const TemplateEditorRefactored: React.FC = () => {
     const element = elements.find(el => el.id === elementId);
     if (!element) return;
 
-    // 获取画布的实际位置和缩放信息
+    // 获取画布的实际位置
     const canvasContainer = canvasRef.current;
     if (!canvasContainer) return;
     
@@ -344,18 +344,9 @@ const TemplateEditorRefactored: React.FC = () => {
     
     const canvasRect = canvasElement.getBoundingClientRect();
     
-    // 计算相对于画布内容的坐标
-    const contentScale = Math.min(800 / canvasSize.width, 600 / canvasSize.height, 1);
-    const scaledCanvasWidth = canvasSize.width * contentScale;
-    const scaledCanvasHeight = canvasSize.height * contentScale;
-    
-    // 计算画布内容在容器中的偏移
-    const canvasOffsetX = (800 - scaledCanvasWidth) / 2;
-    const canvasOffsetY = (600 - scaledCanvasHeight) / 2;
-    
-    // 计算鼠标在画布内容坐标系中的位置
-    const mouseX = (e.clientX - canvasRect.left - canvasOffsetX) / contentScale;
-    const mouseY = (e.clientY - canvasRect.top - canvasOffsetY) / contentScale;
+    // 计算鼠标在画布坐标系中的位置（考虑缩放）
+    const mouseX = (e.clientX - canvasRect.left) / zoom;
+    const mouseY = (e.clientY - canvasRect.top) / zoom;
     
     const offsetX = mouseX - element.position.x;
     const offsetY = mouseY - element.position.y;
@@ -399,7 +390,7 @@ const TemplateEditorRefactored: React.FC = () => {
           return;
         }
         
-        // 获取画布的实际位置和缩放信息
+        // 获取画布的实际位置
         const canvasContainer = canvasRef.current;
         if (!canvasContainer) return;
         
@@ -408,18 +399,9 @@ const TemplateEditorRefactored: React.FC = () => {
         
         const canvasRect = canvasElement.getBoundingClientRect();
         
-        // 计算相对于画布内容的坐标
-        const contentScale = Math.min(800 / canvasSize.width, 600 / canvasSize.height, 1);
-        const scaledCanvasWidth = canvasSize.width * contentScale;
-        const scaledCanvasHeight = canvasSize.height * contentScale;
-        
-        // 计算画布内容在容器中的偏移
-        const canvasOffsetX = (800 - scaledCanvasWidth) / 2;
-        const canvasOffsetY = (600 - scaledCanvasHeight) / 2;
-        
-        // 计算鼠标在画布内容坐标系中的位置
-        const mouseX = (e.clientX - canvasRect.left - canvasOffsetX) / contentScale;
-        const mouseY = (e.clientY - canvasRect.top - canvasOffsetY) / contentScale;
+        // 计算鼠标在画布坐标系中的位置（考虑缩放）
+        const mouseX = (e.clientX - canvasRect.left) / zoom;
+        const mouseY = (e.clientY - canvasRect.top) / zoom;
         
         const newX = mouseX - dragOffset.x;
         const newY = mouseY - dragOffset.y;
@@ -453,7 +435,7 @@ const TemplateEditorRefactored: React.FC = () => {
           return;
         }
         
-        // 获取画布的实际位置和缩放信息
+        // 获取画布的实际位置
         const canvasContainer = canvasRef.current;
         if (!canvasContainer) return;
         
@@ -463,18 +445,9 @@ const TemplateEditorRefactored: React.FC = () => {
         
         const canvasRect = canvasElement.getBoundingClientRect();
         
-        // 计算相对于画布内容的坐标
-        const contentScale = Math.min(800 / canvasSize.width, 600 / canvasSize.height, 1);
-        const scaledCanvasWidth = canvasSize.width * contentScale;
-        const scaledCanvasHeight = canvasSize.height * contentScale;
-        
-        // 计算画布内容在容器中的偏移
-        const canvasOffsetX = (800 - scaledCanvasWidth) / 2;
-        const canvasOffsetY = (600 - scaledCanvasHeight) / 2;
-        
-        // 计算鼠标在画布内容坐标系中的位置
-        const mouseX = (e.clientX - canvasRect.left - canvasOffsetX) / contentScale;
-        const mouseY = (e.clientY - canvasRect.top - canvasOffsetY) / contentScale;
+        // 计算鼠标在画布坐标系中的位置（考虑缩放）
+        const mouseX = (e.clientX - canvasRect.left) / zoom;
+        const mouseY = (e.clientY - canvasRect.top) / zoom;
         
         let newWidth = selectedElementData.size.width;
         let newHeight = selectedElementData.size.height;
@@ -751,16 +724,6 @@ const TemplateEditorRefactored: React.FC = () => {
     });
   };
 
-  const handlePreview = () => {
-    toast({
-      title: 'Preview',
-      description: 'Preview functionality coming soon',
-      status: 'info',
-      duration: 2000,
-      isClosable: true,
-    });
-  };
-
   const handleFitToScreen = () => {
     setZoom(1);
   };
@@ -775,6 +738,25 @@ const TemplateEditorRefactored: React.FC = () => {
     setActivePanel(activePanel === 'effects' ? null : 'effects');
   };
 
+  // 添加ESC键关闭面板功能
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && activePanel) {
+        setActivePanel(null);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [activePanel]);
+
+  // 点击外部区域关闭面板
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      setActivePanel(null);
+    }
+  };
+
   const selectedElementData = selectedElement ? elements.find(el => el.id === selectedElement) : null;
 
   return (
@@ -782,10 +764,6 @@ const TemplateEditorRefactored: React.FC = () => {
       {/* 工具栏 */}
       <Toolbar
         currentTemplate={currentTemplate}
-        onImportTemplate={importGameTemplate}
-        onResetToDefault={resetToDefault}
-        onPreview={handlePreview}
-        onTestChoices={testShowChoices}
         onToggleAIAssistant={handleToggleAIAssistant}
         onToggleEffects={handleToggleEffects}
         activePanel={activePanel}
@@ -905,8 +883,6 @@ const TemplateEditorRefactored: React.FC = () => {
             elementRefs={elementRefs}
             onImportTemplate={importGameTemplate}
             onResetToDefault={resetToDefault}
-            onPreview={handlePreview}
-            onTestChoices={testShowChoices}
             onZoomChange={setZoom}
             onFitToScreen={handleFitToScreen}
             canvasRef={canvasRef}
@@ -931,46 +907,122 @@ const TemplateEditorRefactored: React.FC = () => {
 
       {/* AI助手侧边面板 */}
       {activePanel === 'chat' && (
-        <Box
-          position="fixed"
-          top="60px"
-          right={0}
-          w="400px"
-          h="calc(100vh - 60px)"
-          bg="#111318"
-          borderLeft="1px solid"
-          borderColor="#2d2e37"
-          zIndex={1000}
-          boxShadow="0 25px 50px -12px rgba(0, 0, 0, 0.6)"
-        >
-          <ChatAssistant
-            projectId="demo"
-            selectedElement={selectedElement || undefined}
-            onExecuteCommand={handleExecuteCommand}
-            onApplyEffect={handleApplyEffect}
+        <>
+          {/* 半透明遮罩 */}
+          <Box
+            position="fixed"
+            top="60px"
+            left={0}
+            right={0}
+            bottom={0}
+            bg="rgba(0, 0, 0, 0.3)"
+            zIndex={999}
+            onClick={handleOverlayClick}
           />
-        </Box>
+          <Box
+            position="fixed"
+            top="60px"
+            right={0}
+            w="400px"
+            h="calc(100vh - 60px)"
+            bg="#111318"
+            borderLeft="1px solid"
+            borderColor="#2d2e37"
+            zIndex={1000}
+            boxShadow="0 25px 50px -12px rgba(0, 0, 0, 0.6)"
+          >
+            {/* 关闭按钮 */}
+            <Box
+              position="absolute"
+              top="10px"
+              right="10px"
+              zIndex={1001}
+            >
+              <Button
+                size="sm"
+                variant="ghost"
+                color="#94a3b8"
+                bg="transparent"
+                _hover={{ bg: '#6366f133', color: '#6366f1' }}
+                _active={{ bg: '#6366f14d', color: '#6366f1' }}
+                _focus={{ bg: 'transparent', color: '#94a3b8' }}
+                onClick={() => setActivePanel(null)}
+                borderRadius="full"
+                w="32px"
+                h="32px"
+                p={0}
+              >
+                ✕
+              </Button>
+            </Box>
+            
+            <ChatAssistant
+              projectId="demo"
+              selectedElement={selectedElement || undefined}
+              onExecuteCommand={handleExecuteCommand}
+              onApplyEffect={handleApplyEffect}
+            />
+          </Box>
+        </>
       )}
 
       {/* 特效面板 */}
       {activePanel === 'effects' && (
-        <Box
-          position="fixed"
-          top="60px"
-          right={0}
-          w="350px"
-          h="calc(100vh - 60px)"
-          bg="#111318"
-          borderLeft="1px solid"
-          borderColor="#2d2e37"
-          zIndex={1000}
-          boxShadow="0 25px 50px -12px rgba(0, 0, 0, 0.6)"
-        >
-          <EffectsPanel
-            onApplyEffect={handleApplyEffect}
-            selectedElement={selectedElement || undefined}
+        <>
+          {/* 半透明遮罩 */}
+          <Box
+            position="fixed"
+            top="60px"
+            left={0}
+            right={0}
+            bottom={0}
+            bg="rgba(0, 0, 0, 0.3)"
+            zIndex={999}
+            onClick={handleOverlayClick}
           />
-        </Box>
+          <Box
+            position="fixed"
+            top="60px"
+            right={0}
+            w="350px"
+            h="calc(100vh - 60px)"
+            bg="#111318"
+            borderLeft="1px solid"
+            borderColor="#2d2e37"
+            zIndex={1000}
+            boxShadow="0 25px 50px -12px rgba(0, 0, 0, 0.6)"
+          >
+            {/* 关闭按钮 */}
+            <Box
+              position="absolute"
+              top="10px"
+              right="10px"
+              zIndex={1001}
+            >
+              <Button
+                size="sm"
+                variant="ghost"
+                color="#94a3b8"
+                bg="transparent"
+                _hover={{ bg: '#6366f133', color: '#6366f1' }}
+                _active={{ bg: '#6366f14d', color: '#6366f1' }}
+                _focus={{ bg: 'transparent', color: '#94a3b8' }}
+                onClick={() => setActivePanel(null)}
+                borderRadius="full"
+                w="32px"
+                h="32px"
+                p={0}
+              >
+                ✕
+              </Button>
+            </Box>
+            
+            <EffectsPanel
+              onApplyEffect={handleApplyEffect}
+              selectedElement={selectedElement || undefined}
+            />
+          </Box>
+        </>
       )}
     </Box>
   );
