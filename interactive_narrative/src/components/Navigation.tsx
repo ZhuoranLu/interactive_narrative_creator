@@ -27,8 +27,8 @@ const Navigation: React.FC<NavigationProps> = ({ currentUser, onLogout }) => {
           <ul className="nav-list">
             <li>
               <Link 
-                to="/" 
-                className={`nav-link ${isActive('/') ? 'active' : ''}`}
+                to="/home" 
+                className={`nav-link ${isActive('/home') ? 'active' : ''}`}
               >
                 首页
               </Link>
